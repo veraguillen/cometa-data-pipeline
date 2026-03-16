@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cometa Pipeline - Subir Documento</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Helvetica Now Display', 'Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'cometa': {
+                            'dark': '#1a1a2e',
+                            'light': '#f4f4f4',
+                            'accent': '#64CAE4',
+                            'black': '#000000',
+                            'white': '#ffffff'
+                        }
+                    },
+                    backgroundImage: {
+                        'cometa-dark': 'linear-gradient(135deg, #1a1a2e 0%, #000000 100%)',
+                        'cometa-light': 'linear-gradient(135deg, #FFD700 0%, #ffffff 100%)'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Helvetica Now Display', 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #000000 100%);
+            min-height: 100vh;
+        }
+        
+        .glass-effect {
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .dropzone {
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(20px);
+            border: 2px dashed rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .dropzone:hover {
+            border-color: #64CAE4;
+            box-shadow: 0 0 30px rgba(100, 202, 228, 0.2);
+        }
+        
+        .dropzone.dragover {
+            border-color: #64CAE4;
+            background: rgba(100, 202, 228, 0.1);
+            box-shadow: 0 0 40px rgba(100, 202, 228, 0.3);
+        }
+        
+        .cometa-title {
+            font-weight: 200;
+            letter-spacing: 0.05em;
+        }
+        
+        .cometa-subtitle {
+            font-weight: 300;
+            letter-spacing: 0.02em;
+        }
+        
+        .hover-accent:hover {
+            color: #64CAE4;
+            transition: color 0.3s ease;
+        }
+        
+        .bg-accent {
+            background-color: #64CAE4;
+        }
+        
+        .text-accent {
+            color: #64CAE4;
+        }
+        
+        .border-accent {
+            border-color: #64CAE4;
+        }
+        
+        /* Icono de Cometa (lazo de momentum) */
+        .cometa-icon {
+            width: 80px;
+            height: 80px;
+            position: relative;
+        }
+        
+        .cometa-icon::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border: 3px solid #64CAE4;
+            border-radius: 50%;
+            border-top-color: transparent;
+            border-right-color: transparent;
+            transform: rotate(-45deg);
+        }
+        
+        .cometa-icon::after {
+            content: '';
+            position: absolute;
+            width: 60%;
+            height: 60%;
+            border: 2px solid #64CAE4;
+            border-radius: 50%;
+            border-bottom-color: transparent;
+            border-left-color: transparent;
+            top: 20%;
+            left: 20%;
+            transform: rotate(-45deg);
+        }
+    </style>
+</head>
+<body>
+    <div class="min-h-screen flex items-center justify-center p-6">
+        <div class="max-w-md w-full">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <div class="cometa-icon mx-auto mb-6"></div>
+                <h1 class="text-3xl font-extralight cometa-title text-white mb-2">Cometa Pipeline</h1>
+                <p class="text-white/80 font-normal cometa-subtitle">Análisis financiero inteligente</p>
+            </div>
+
+            <!-- Formulario -->
+            <div class="glass-effect rounded-2xl p-8">
+                <form id="uploadForm" class="space-y-6">
+                    <!-- Email del Founder -->
+                    <div>
+                        <label for="founderEmail" class="block text-sm font-medium text-white mb-2">
+                            Email del founder
+                        </label>
+                        <input 
+                            type="email" 
+                            id="founderEmail" 
+                            name="founder_email"
+                            required
+                            placeholder="tu@email.com"
+                            class="w-full px-4 py-3 bg-black/50 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+                        >
+                    </div>
+
+                    <!-- Dropzone -->
+                    <div>
+                        <label class="block text-sm font-medium text-white mb-2">
+                            Documento financiero
+                        </label>
+                        <div 
+                            id="dropzone" 
+                            class="dropzone rounded-xl p-12 text-center cursor-pointer"
+                        >
+                            <input 
+                                type="file" 
+                                id="fileInput" 
+                                name="file" 
+                                accept=".pdf"
+                                class="hidden"
+                                required
+                            >
+                            <div class="space-y-4">
+                                <div class="text-accent text-4xl">📄</div>
+                                <div>
+                                    <p class="text-white font-medium">Arrastra tu PDF aquí</p>
+                                    <p class="text-white/60 text-sm">o haz clic para seleccionar</p>
+                                </div>
+                                <p class="text-white/40 text-xs">Solo archivos PDF • Máximo 50MB</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Archivo seleccionado -->
+                    <div id="fileInfo" class="hidden">
+                        <div class="bg-black/50 border border-white/20 rounded-lg p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="text-accent">📄</div>
+                                    <div>
+                                        <p id="fileName" class="text-white font-medium text-sm"></p>
+                                        <p id="fileSize" class="text-white/60 text-xs"></p>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button"
+                                    id="removeFile"
+                                    class="text-white/40 hover:text-white transition-colors"
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Botón de submit -->
+                    <button 
+                        type="submit"
+                        id="submitBtn"
+                        disabled
+                        class="w-full py-3 px-4 bg-accent text-black font-medium rounded-lg hover:bg-accent/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Analizar documento
+                    </button>
+                </form>
+
+                <!-- Loading -->
+                <div id="loading" class="hidden mt-6">
+                    <div class="text-center">
+                        <div class="inline-flex items-center space-x-2">
+                            <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
+                            <span class="text-white">Analizando documento...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultado -->
+                <div id="result" class="hidden mt-6">
+                    <div class="bg-black/50 border border-white/20 rounded-lg p-4">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="text-green-400">✓</div>
+                                <p class="text-white font-medium">Análisis completado</p>
+                            </div>
+                            <p id="resultMessage" class="text-white/80 text-sm"></p>
+                            <a 
+                                id="dashboardLink"
+                                href="#" 
+                                class="inline-flex items-center space-x-2 text-accent hover:text-accent/80 transition-colors"
+                            >
+                                <span>Ver resultados</span>
+                                <span>→</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Error -->
+                <div id="error" class="hidden mt-6">
+                    <div class="bg-red-950/50 border border-red-900/50 rounded-lg p-4">
+                        <div class="space-y-3">
+                            <div class="flex items-center space-x-2">
+                                <div class="text-red-400">✕</div>
+                                <p class="text-white font-medium">Error en el análisis</p>
+                            </div>
+                            <p id="errorMessage" class="text-white/80 text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-8">
+                <p class="text-white/60 text-sm font-normal">
+                    © 2026 Cometa Pipeline - Análisis financiero con ia
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        const removeFileBtn = document.getElementById('removeFile');
+        const submitBtn = document.getElementById('submitBtn');
+        const uploadForm = document.getElementById('uploadForm');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const error = document.getElementById('error');
+        const resultMessage = document.getElementById('resultMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const dashboardLink = document.getElementById('dashboardLink');
+
+        // Dropzone events
+        dropzone.addEventListener('click', () => fileInput.click());
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('dragover');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('dragover');
+        });
+        
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        removeFileBtn.addEventListener('click', () => {
+            clearFile();
+        });
+        
+        function handleFile(file) {
+            if (file.type !== 'application/pdf') {
+                showError('Solo se permiten archivos PDF');
+                return;
+            }
+            
+            if (file.size > 50 * 1024 * 1024) { // 50MB
+                showError('El archivo no puede superar los 50MB');
+                return;
+            }
+            
+            fileName.textContent = file.name;
+            fileSize.textContent = formatFileSize(file.size);
+            fileInfo.classList.remove('hidden');
+            submitBtn.disabled = false;
+            
+            // Ocultar dropzone
+            dropzone.style.display = 'none';
+        }
+        
+        function clearFile() {
+            fileInput.value = '';
+            fileInfo.classList.add('hidden');
+            submitBtn.disabled = true;
+            dropzone.style.display = 'block';
+        }
+        
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        function showLoading() {
+            loading.classList.remove('hidden');
+            result.classList.add('hidden');
+            error.classList.add('hidden');
+            submitBtn.disabled = true;
+        }
+        
+        function showResult(data) {
+            loading.classList.add('hidden');
+            result.classList.remove('hidden');
+            error.classList.add('hidden');
+            submitBtn.disabled = false;
+            
+            if (data.duplicate) {
+                resultMessage.textContent = 'El archivo ya había sido analizado anteriormente. Mostrando resultados existentes.';
+            } else {
+                resultMessage.textContent = 'El documento ha sido analizado exitosamente.';
+            }
+            
+            dashboardLink.href = `/dashboard?hash=${data.file_hash}`;
+        }
+        
+        function showError(message) {
+            loading.classList.add('hidden');
+            result.classList.add('hidden');
+            error.classList.remove('hidden');
+            submitBtn.disabled = false;
+            errorMessage.textContent = message;
+        }
+        
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('founder_email', document.getElementById('founderEmail').value);
+            
+            showLoading();
+            
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(data);
+                } else {
+                    showError(data.detail || 'Error en el servidor');
+                }
+            } catch (err) {
+                showError('Error de conexión. Intenta nuevamente.');
+            }
+        });
+    </script>
+</body>
+</html>

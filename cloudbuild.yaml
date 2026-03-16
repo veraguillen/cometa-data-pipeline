@@ -1,0 +1,121 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Google Cloud Build — CI/CD para Cometa Vault
+#
+# Trigger: push a la rama `main`
+#
+# Variables de sustitución — configurar en la UI del trigger:
+#   _REGION              → us-central1
+#   _REPO                → cometa-vault          (Artifact Registry)
+#   _BACKEND_SERVICE     → cometa-vault-test      (nombre del servicio Cloud Run)
+#   _FRONTEND_SERVICE    → cometa-vault-frontend
+#   _SA_EMAIL            → cometa-vault-sa@<PROJECT_ID>.iam.gserviceaccount.com
+#   _NEXT_PUBLIC_API_URL → URL del backend (obtener tras el primer deploy)
+# ──────────────────────────────────────────────────────────────────────────────
+
+substitutions:
+  _REGION: us-central1
+  _REPO: cometa-vault
+  _BACKEND_SERVICE: cometa-vault-test
+  _FRONTEND_SERVICE: cometa-vault-frontend
+  _SA_EMAIL: cometa-vault-sa@cometa-mvp.iam.gserviceaccount.com
+  _NEXT_PUBLIC_API_URL: https://cometa-vault-test-placeholder.a.run.app
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+steps:
+  # ── 1. Build imagen del Backend ──────────────────────────────────────────────
+  - name: gcr.io/cloud-builders/docker
+    id: build-backend
+    args:
+      - build
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend:${SHORT_SHA}
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend:latest
+      - --cache-from
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend:latest
+      - --file
+      - Dockerfile
+      - .
+
+  # ── 2. Build imagen del Frontend ─────────────────────────────────────────────
+  - name: gcr.io/cloud-builders/docker
+    id: build-frontend
+    args:
+      - build
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}
+      - --tag
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest
+      - --cache-from
+      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest
+      - --build-arg
+      - NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}
+      - --file
+      - frontend/Dockerfile
+      - frontend/
+
+  # ── 3 & 4. Push ambas imágenes (en paralelo) ─────────────────────────────────
+  - name: gcr.io/cloud-builders/docker
+    id: push-backend
+    waitFor: [build-backend]
+    args: [push, --all-tags, "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend"]
+
+  - name: gcr.io/cloud-builders/docker
+    id: push-frontend
+    waitFor: [build-frontend]
+    args: [push, --all-tags, "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend"]
+
+  # ── 5. Deploy Backend → cometa-vault-test ────────────────────────────────────
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-backend
+    waitFor: [push-backend]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_BACKEND_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend:${SHORT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+      - --service-account=${_SA_EMAIL}
+      - --allow-unauthenticated
+      - --port=8080
+      - --cpu=2
+      - --memory=2Gi
+      - --min-instances=0
+      - --max-instances=10
+      - --concurrency=10
+      - --timeout=300
+      - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID}
+      # GCP_SERVICE_ACCOUNT_JSON: el contenido JSON del secreto se inyecta como
+      # variable de entorno. El código usa from_service_account_info() — no necesita
+      # ningún archivo físico dentro del contenedor.
+      - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest,BIGQUERY_DATASET=cometa-bq-dataset:latest,GCS_INPUT_BUCKET=cometa-gcs-bucket:latest
+
+  # ── 6. Deploy Frontend ────────────────────────────────────────────────────────
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    id: deploy-frontend
+    waitFor: [push-frontend]
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_FRONTEND_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=8080
+      - --cpu=1
+      - --memory=512Mi
+      - --min-instances=0
+      - --max-instances=5
+      - --concurrency=80
+      - --set-env-vars=NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}
+
+images:
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/backend:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}

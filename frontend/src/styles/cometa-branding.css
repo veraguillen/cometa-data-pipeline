@@ -1,0 +1,646 @@
+/* COMETA BRANDING SYSTEM - Estándares de Marca */
+
+/* ==================== TIPOGRAFÍA HELVETICA NOW DISPLAY ==================== */
+/* Helvetica Now Display is commercial — Inter serves as the precision fallback */
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+:root {
+  /* Colores Primarios COMETA */
+  --cometa-black: #000000;
+  --cometa-dark-blue: #00237F;
+  --cometa-light-blue: #64CAE4;
+  --cometa-cyan: #00D4FF;
+  
+  /* Gradientes COMETA */
+  --cometa-primary-gradient: linear-gradient(135deg, var(--cometa-dark-blue) 0%, var(--cometa-light-blue) 100%);
+  --cometa-subtle-gradient: linear-gradient(135deg, rgba(0, 35, 127, 0.1) 0%, rgba(100, 202, 228, 0.05) 100%);
+  
+  /* Colores de Estado */
+  --cometa-success: #10B981;
+  --cometa-warning: #F59E0B;
+  --cometa-error: #EF4444;
+  --cometa-info: #3B82F6;
+  
+  /* Tipografía */
+  --font-cometa: 'Helvetica Now Display', 'Inter', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Clases de Tipografía */
+.font-cometa-regular {
+  font-family: var(--font-cometa);
+  font-weight: 400; /* Regular */
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.font-cometa-extralight {
+  font-family: var(--font-cometa);
+  font-weight: 200; /* Extra Light */
+  letter-spacing: -0.015em;
+  line-height: 1.3;
+}
+
+.font-cometa-light {
+  font-family: var(--font-cometa);
+  font-weight: 300; /* Light */
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+/* ================== FONDOS Y TEXTURAS ==================== */
+.cometa-black-bg {
+  background: var(--cometa-black);
+}
+
+.cometa-aerial-texture {
+  background-image: 
+    linear-gradient(135deg, rgba(0, 35, 127, 0.03) 0%, rgba(0, 35, 127, 0.01) 100%),
+    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 1 1 L 9 1" stroke="rgba(255,255,255,0.02)" stroke-width="0.5" fill="none"/></pattern></defs><rect width="100" height="100" fill="url(%23grid)" /></svg>');
+  background-size: 100px 100px, 400px 400px;
+  background-attachment: fixed;
+  position: relative;
+}
+
+.cometa-aerial-texture::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(0, 35, 127, 0.4) 0%, rgba(0, 35, 127, 0.1) 100%);
+  z-index: -1;
+}
+
+/* ================== COMPONENTES DE CONTENEDORES ==================== */
+.cometa-container {
+  background: transparent;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.cometa-main-layout {
+  position: relative;
+  z-index: 1;
+}
+
+.cometa-card {
+  background: rgba(0, 8, 30, 0.50);
+  border: 1px solid rgba(100, 202, 228, 0.12);
+  border-radius: 8px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cometa-card:hover {
+  border-color: rgba(100, 202, 228, 0.32);
+  background: rgba(0, 35, 127, 0.08);
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(100, 202, 228, 0.08),
+    0 0 40px rgba(100, 202, 228, 0.08),
+    0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ================== BORDES Y GRADIENTES ==================== */
+.cometa-border-gradient {
+  border: 1px solid;
+  border-image: linear-gradient(135deg, var(--cometa-dark-blue), var(--cometa-light-blue)) 1;
+  background: var(--cometa-subtle-gradient);
+}
+
+.cometa-border-subtle {
+  border: 1px solid rgba(100, 202, 228, 0.1);
+}
+
+/* ================== BOTONES Y ACCIONES ==================== */
+.cometa-btn-primary {
+  background: var(--cometa-primary-gradient);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-family: var(--font-cometa);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.cometa-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.5s ease;
+}
+
+.cometa-btn-primary:hover::before {
+  left: 100%;
+}
+
+.cometa-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 30px rgba(100, 202, 228, 0.2);
+}
+
+.cometa-btn-secondary {
+  background: transparent;
+  color: var(--cometa-light-blue);
+  border: 1px solid rgba(100, 202, 228, 0.3);
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-family: var(--font-cometa);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cometa-btn-secondary:hover {
+  border-color: var(--cometa-light-blue);
+  background: rgba(100, 202, 228, 0.05);
+  transform: translateY(-1px);
+}
+
+/* ================== LOGO COMETA ==================== */
+.cometa-logo {
+  background: white;
+  color: var(--cometa-black);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-cometa);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ================== MÉTRICAS Y DATOS ==================== */
+.cometa-metric-card {
+  background: rgba(0, 8, 30, 0.50);
+  border: 1px solid rgba(100, 202, 228, 0.1);
+  border-radius: 6px;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cometa-metric-card:hover {
+  border-color: rgba(100, 202, 228, 0.28);
+  background: rgba(0, 35, 127, 0.08);
+  box-shadow: 0 0 30px rgba(100, 202, 228, 0.07);
+  transform: translateY(-1px);
+}
+
+.cometa-metric-value {
+  font-family: var(--font-cometa);
+  font-weight: 200;
+  font-size: clamp(22px, 4vw, 32px);
+  color: white;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 6px;
+}
+
+.cometa-metric-label {
+  font-family: var(--font-cometa);
+  font-weight: 300;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.38);
+  letter-spacing: 0.06em;
+}
+
+/* ================== ESTADOS Y VALIDACIONES ==================== */
+.cometa-loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(100, 202, 228, 0.3);
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: cometa-spin 1s linear infinite;
+}
+
+@keyframes cometa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.cometa-success-state {
+  color: var(--cometa-success);
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.cometa-warning-state {
+  color: var(--cometa-warning);
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.cometa-error-state {
+  color: var(--cometa-error);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+/* ================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+  .cometa-card {
+    border-radius: 12px;
+    padding: 16px;
+  }
+  
+  .cometa-btn-primary,
+  .cometa-btn-secondary {
+    padding: 10px 20px;
+    font-size: 13px;
+  }
+  
+  .cometa-metric-card {
+    padding: 16px;
+  }
+  
+  .cometa-metric-value {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .cometa-card {
+    border-radius: 8px;
+    padding: 12px;
+  }
+
+  .cometa-btn-primary,
+  .cometa-btn-secondary {
+    padding: 8px 16px;
+    font-size: 12px;
+    width: 100%;
+  }
+
+  .cometa-metric-card {
+    padding: 12px;
+  }
+
+  .cometa-metric-value {
+    font-size: 18px;
+  }
+}
+
+/* ================== TIPOGRAFÍA GLOBAL ==================== */
+body {
+  font-family: var(--font-cometa);
+  font-weight: 200;
+  color: white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ================== ANIMACIONES FADE-IN ==================== */
+@keyframes cometa-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cometa-fade-in {
+  animation: cometa-fade-in 0.55s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cometa-fade-in-delay-1 { animation-delay: 0.10s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.cometa-fade-in-delay-2 { animation-delay: 0.20s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.cometa-fade-in-delay-3 { animation-delay: 0.30s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.cometa-fade-in-delay-4 { animation-delay: 0.40s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.cometa-fade-in-delay-5 { animation-delay: 0.50s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.cometa-fade-in-delay-6 { animation-delay: 0.60s; opacity: 0; animation-fill-mode: forwards; animation-name: cometa-fade-in; animation-duration: 0.55s; animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+/* ================== CHECKLIST ANIMADO ==================== */
+@keyframes cometa-check-in {
+  0%   { opacity: 0; transform: scale(0) rotate(-20deg); }
+  60%  { transform: scale(1.15) rotate(4deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+.cometa-check-appear {
+  animation: cometa-check-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* ================== TARJETAS CON BORDE GRADIENTE — GLASSMORPHISM ============ */
+/*
+ * Vault crystal effect: dark-blue tinted glass + backdrop blur + gradient border.
+ * Background rgba(0,35,127,0.05) per Brandbook spec — border glow in #64CAE4.
+ */
+.cometa-card-gradient {
+  position: relative;
+  background: rgba(0, 8, 30, 0.50);
+  border-radius: 8px;
+  isolation: isolate;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.cometa-card-gradient::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9px;
+  background: linear-gradient(135deg,
+    rgba(0, 35, 127, 0.9)   0%,
+    rgba(100, 202, 228, 0.7) 100%
+  );
+  z-index: -1;
+  opacity: 0.38;
+  transition: opacity 0.35s ease;
+}
+
+.cometa-card-gradient:hover::after {
+  opacity: 0.95;
+}
+
+.cometa-card-gradient:hover {
+  box-shadow:
+    0 0 0 1px rgba(100, 202, 228, 0.12),
+    0 8px 40px rgba(0,   0,   0,   0.60),
+    0 0 60px rgba(100, 202, 228, 0.06);
+}
+
+/* ================== ZONA DE UPLOAD VAULT ==================== */
+.vault-drop-zone {
+  border: 1px solid rgba(100, 202, 228, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 35, 127, 0.04);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.vault-drop-zone:hover,
+.vault-drop-zone.dragging {
+  border-color: rgba(100, 202, 228, 0.65);
+  background: rgba(0, 35, 127, 0.08);
+  box-shadow:
+    0 0 0 1px  rgba(100, 202, 228, 0.18),
+    0 0 0 4px  rgba(100, 202, 228, 0.04),
+    0 0 80px   rgba(100, 202, 228, 0.14),
+    0 0 40px   rgba(100, 202, 228, 0.08),
+    inset 0 0 40px rgba(100, 202, 228, 0.03);
+}
+
+/*
+ * vault-drop-zone-gradient — luxury dropzone with animated gradient border.
+ * Uses a pseudo-element mask so the border itself is a #00237F→#64CAE4 gradient.
+ */
+.vault-drop-zone-gradient {
+  position: relative;
+  border-radius: 8px;
+  background: rgba(0, 8, 30, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  cursor: pointer;
+  transition: background 0.4s ease;
+  /* gradient border via box-shadow layering */
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 35, 127, 0.6),
+    inset 0 0 0 1px rgba(100, 202, 228, 0.12);
+}
+
+/* Gradient border rendered via a pseudo-element */
+.vault-drop-zone-gradient::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 9px;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(0, 35, 127, 0.8) 0%, rgba(100, 202, 228, 0.55) 100%);
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
+  z-index: 0;
+}
+
+.vault-drop-zone-gradient:hover::before,
+.vault-drop-zone-gradient.dragging::before {
+  opacity: 1;
+}
+
+.vault-drop-zone-gradient:hover,
+.vault-drop-zone-gradient.dragging {
+  background: rgba(0, 35, 127, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(100, 202, 228, 0.2),
+    0 0 60px rgba(100, 202, 228, 0.10),
+    0 0 30px rgba(100, 202, 228, 0.06),
+    inset 0 0 30px rgba(100, 202, 228, 0.03);
+}
+
+/* ================== FONDO AÉREO MEJORADO ==================== */
+/*
+ * background-attachment: fixed is intentionally omitted:
+ * it causes a blank white rectangle on iOS Safari and
+ * Android WebView. The grid tiles correctly without it.
+ */
+.cometa-aerial-texture {
+  background-color: transparent;
+  background-image:
+    linear-gradient(rgba(0, 35, 127, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 35, 127, 0.05) 1px, transparent 1px),
+    linear-gradient(rgba(100, 202, 228, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(100, 202, 228, 0.02) 1px, transparent 1px);
+  background-size: 80px 80px, 80px 80px, 20px 20px, 20px 20px;
+  background-position: -1px -1px, -1px -1px, -1px -1px, -1px -1px;
+  background-repeat: repeat;
+  min-height: 100vh;
+}
+
+.cometa-aerial-texture::before {
+  content: none;
+}
+
+/* ================== TIPOGRAFÍA FLUIDA ==================== */
+/*
+ * clamp(min, preferred, max) — titles shrink ~20% on narrow
+ * screens while preserving Regular (400) weight throughout.
+ */
+
+/* Main page titles: ~28px on desktop → ~22px on 320px */
+.cometa-title {
+  font-family: var(--font-cometa);
+  font-weight: 400;
+  font-size: clamp(20px, 5.5vw, 28px);
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+  color: #ffffff;
+}
+
+/* Large hero titles: ~32px desktop → ~24px mobile */
+.cometa-title-lg {
+  font-family: var(--font-cometa);
+  font-weight: 400;
+  font-size: clamp(22px, 6vw, 32px);
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #ffffff;
+}
+
+/* Section labels: always tiny, ExtraLight */
+.cometa-label {
+  font-family: var(--font-cometa);
+  font-weight: 200;
+  font-size: clamp(10px, 2.5vw, 11px);
+  letter-spacing: 0.12em;
+}
+
+/* Metric values: ExtraLight (200) preserved at all sizes */
+.cometa-metric-fluid {
+  font-family: var(--font-cometa);
+  font-weight: 200;
+  font-size: clamp(18px, 4.5vw, 22px);
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* ================== SCROLL HORIZONTAL SUAVE ==================== */
+/*
+ * Wrap any data table or wide content in this class on mobile.
+ * Thin, subtle #64CAE4 scrollbar that disappears into the UI.
+ */
+.cometa-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;  /* momentum scroll on iOS */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 202, 228, 0.18) transparent;
+}
+
+.cometa-table-scroll::-webkit-scrollbar {
+  height: 3px;
+}
+
+.cometa-table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cometa-table-scroll::-webkit-scrollbar-thumb {
+  background: rgba(100, 202, 228, 0.2);
+  border-radius: 99px;
+}
+
+/* ================== HAMBURGESA / DRAWER ==================== */
+
+/* The three bar lines */
+.cometa-ham-line {
+  display: block;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: 99px;
+  transition: background 0.2s ease;
+}
+
+button:hover .cometa-ham-line {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* Prevent body scroll when drawer is open */
+.cometa-drawer-open body {
+  overflow: hidden;
+}
+
+/* ================== MICRO-INTERACCIONES: GUARDAR KPI ==================== */
+/*
+ * cometa-card-saved  — applied for ~2.4s after a successful edit.
+ * Two synchronized keyframes:
+ *   cometa-card-glow  → animates box-shadow on the card element
+ *   cometa-border-glow→ pulses the ::after gradient border to full opacity
+ */
+
+@keyframes cometa-card-glow {
+  0%   {
+    box-shadow: 0 0 0 0   rgba(100, 202, 228, 0),
+                0 0 0     rgba(100, 202, 228, 0);
+  }
+  18%  {
+    box-shadow: 0 0 0 1px rgba(100, 202, 228, 0.55),
+                0 0 28px  rgba(100, 202, 228, 0.18);
+  }
+  60%  {
+    box-shadow: 0 0 0 1px rgba(100, 202, 228, 0.22),
+                0 0 14px  rgba(100, 202, 228, 0.08);
+  }
+  100% {
+    box-shadow: 0 0 0 0   rgba(100, 202, 228, 0),
+                0 0 0     rgba(100, 202, 228, 0);
+  }
+}
+
+@keyframes cometa-border-glow {
+  0%   { opacity: 0.55; }
+  18%  { opacity: 1;    }
+  60%  { opacity: 0.72; }
+  100% { opacity: 0.55; }
+}
+
+.cometa-card-saved {
+  animation: cometa-card-glow 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.cometa-card-saved::after {
+  animation: cometa-border-glow 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/*
+ * cometa-validated-badge  — "Datos Validados" pill that appears, holds, then
+ * fades out — total lifetime controlled by the same 2.4s setTimeout in JS.
+ */
+@keyframes cometa-validated-in {
+  0%   { opacity: 0; transform: translateY(5px);  }
+  15%  { opacity: 1; transform: translateY(0);    }
+  78%  { opacity: 1; transform: translateY(0);    }
+  100% { opacity: 0; transform: translateY(-3px); }
+}
+
+.cometa-validated-badge {
+  animation: cometa-validated-in 2.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  pointer-events: none;
+}
+
+/*
+ * cometa-portfolio-flash — brief blue-tinted glow fired when the Analyst
+ * switches between Fondo VII / Fondo CIII. Matches the 650 ms setTimeout.
+ */
+@keyframes cometa-portfolio-flash-kf {
+  0%   { box-shadow: none; }
+  18%  { box-shadow: 0 0 0 1px rgba(100,202,228,0.18), 0 0 40px rgba(100,202,228,0.06); }
+  55%  { box-shadow: 0 0 0 1px rgba(100,202,228,0.10), 0 0 24px rgba(100,202,228,0.04); }
+  100% { box-shadow: none; }
+}
+
+.cometa-portfolio-flash {
+  animation: cometa-portfolio-flash-kf 0.65s ease-out forwards;
+  border-radius: 1rem;
+}

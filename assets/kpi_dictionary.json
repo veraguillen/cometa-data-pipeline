@@ -1,0 +1,93 @@
+{
+  "Standard_KPIs": [
+    {
+      "legacy_kpi": "Revenue",
+      "target_kpi": "Revenue",
+      "audit_logic": "Keep"
+    },
+    {
+      "legacy_kpi": "Gross Margin",
+      "target_kpi": "Gross Margin",
+      "audit_logic": "Keep"
+    },
+    {
+      "legacy_kpi": "EBITDA / Net Income",
+      "target_kpi": "EBITDA / Net Income",
+      "audit_logic": "Keep"
+    },
+    {
+      "legacy_kpi": "Runway",
+      "target_kpi": "Runway",
+      "audit_logic": "Keep"
+    },
+    {
+      "legacy_kpi": "Primary growth metric",
+      "target_kpi": "Burn Multiple (Net burn / Net new ARR)",
+      "audit_logic": "Links growth directly to capital efficiency, enabling cross-portfolio comparability regardless of scale."
+    },
+    {
+      "legacy_kpi": "NA",
+      "target_kpi": "Net Dollar Retention (NDR)",
+      "audit_logic": "Better captures quality of growth by incorporating churn, contraction, and expansion rather than absolute revenue growth."
+    },
+    {
+      "legacy_kpi": "NA",
+      "target_kpi": "L3M CMGR",
+      "audit_logic": "Smooths short-term volatility and provides a clearer signal of underlying growth momentum than single-quarter growth."
+    }
+  ],
+  "Simetrik": {
+    "legacy_kpis": ["Invoiced Clients", "Invoiced MRR", "Runway"],
+    "target_kpis": ["Invoiced Clients", "Rule of 40", "SaaS Magic Number"],
+    "audit_logic": [
+      "Keep",
+      "Combines growth and profitability into una sola métrica de eficiencia más relevante que el MRR bruto.",
+      "Directamente mide eficiencia de ventas y payback, más accionable que runway solo para SaaS en escalamiento."
+    ]
+  },
+  "Solvento": {
+    "legacy_kpis": ["Loan Portfolio at EOP ($M)", "Lending Clients", "SaaS Clients"],
+    "target_kpis": ["Loan Portfolio at EOP ($M)", "Default Rate", "% Non-lending Revenue"],
+    "audit_logic": [
+      "Keep",
+      "Better captures portfolio risk and capital preservation than client count.",
+      "Shows the progress better toward a more scalable, higher-multiple SaaS-led business model."
+    ]
+  },
+  "Kala": {
+    "legacy_kpis": ["Number of Applications", "Approved Applications", "Disbursed Loans"],
+    "target_kpis": ["Origination", "Back book vs Front book", "Disbursed Loans"],
+    "audit_logic": [
+      "Focuses on executed volume rather than funnel top-of-funnel noise.",
+      "Separates legacy or third party portfolio servicing revenue from new underwriting quality, improving revenue visibility.",
+      "Keep"
+    ]
+  },
+  "Quinio": {
+    "legacy_kpis": ["Acquired Brands", "Acquired Sellers", "Revenue Run-rate"],
+    "target_kpis": ["Acquired Brands", "Cash Conversion Cycle", "Revenue Run-rate"],
+    "audit_logic": [
+      "Keep",
+      "More relevant for a roll-up model as it captures working capital intensity and liquidity risk, not just scale.",
+      "Keep"
+    ]
+  },
+  "Cluvi": {
+    "legacy_kpis": ["Number of Restaurants", "Number of Users", "MRR"],
+    "target_kpis": ["Number of Restaurants", "ARPU per Restaurant", "Menu Engagement (views, scans?)"],
+    "audit_logic": [
+      "Keep",
+      "Better monetization signal than user count, which does not correlate with revenue.",
+      "Directly measures product usage and value delivered, which drives retention and upsell potential."
+    ]
+  },
+  "Prometeo": {
+    "legacy_kpis": ["Total Clients", "MRR", "Runway"],
+    "target_kpis": ["Total Clients", "MRR per client", "API Calls or Total Payment Volume"],
+    "audit_logic": [
+      "Keep",
+      "Better reflects monetization depth and usage intensity than aggregate MRR.",
+      "Captures real platform usage and engagement, not just commercial contracts."
+    ]
+  }
+}
