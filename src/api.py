@@ -6,7 +6,7 @@ if sys.stderr.encoding != "utf-8":
 
 from fastapi import FastAPI, UploadFile, File, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, model_validator
 import os
@@ -68,6 +68,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Rutas de archivos estáticos ───────────────────────────────────────────────
+# BASE_DIR apunta a la raíz del proyecto (/app en Cloud Run) sin importar
+# desde qué directorio se invoque uvicorn. Evita problemas con rutas relativas.
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+_assets_dir = os.path.join(BASE_DIR, "assets")
+if os.path.isdir(_assets_dir):
+    app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
+
+@app.get("/", include_in_schema=False)
+async def root():
+    """Ruta raíz — sirve el dashboard HTML principal."""
+    html_path = os.path.join(BASE_DIR, "templates", "dashboard.html")
+    if not os.path.exists(html_path):
+        return {"status": "ok", "service": "cometa-vault-api", "docs": "/docs"}
+    return FileResponse(html_path)
 
 # Configuración
 PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", "cometa-mvp")
