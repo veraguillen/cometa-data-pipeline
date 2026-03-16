@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "./LayoutWrapper";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
 import UploadPanel from "@/app/dashboard/ui/upload-panel";
 import ResultsPanel from "@/app/dashboard/ui/results-panel";
 import FinancialCharts from "@/components/charts/FinancialCharts";
@@ -188,7 +190,7 @@ export default function FounderDashboard() {
           return;
         }
         
-        let url = `http://localhost:8000/api/results?company_id=${encodeURIComponent(companyDomain)}`;
+        let url = `${API_BASE}/api/results?company_id=${encodeURIComponent(companyDomain)}`;
         
         console.log("🔄 Fetching resultados desde:", url);
         

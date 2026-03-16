@@ -12,6 +12,8 @@ import MobileNav from "@/components/MobileNav";
 import SmartChecklistFounder, { type ChecklistStatus, type KpiRow } from "@/components/SmartChecklistFounder";
 import "@/styles/cometa-branding.css";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+
 // ─── File-type icon (per-format, luxury minimal SVGs) ────────────────────────
 
 const ACCEPTED_TYPES = ".pdf,.csv,.xlsx,.xls,.parquet,.docx,.doc";
@@ -240,7 +242,7 @@ export default function SocioView({ companyDomain, onLogout }: SocioViewProps) {
       const form = new FormData();
       form.append("file", file);
 
-      const res = await fetch("http://localhost:8000/upload", {
+      const res = await fetch("${API_BASE}/upload", {
         method:  "POST",
         headers: { "founder-email": companyDomain },
         body:    form,
@@ -292,7 +294,7 @@ export default function SocioView({ companyDomain, onLogout }: SocioViewProps) {
       };
       filled.forEach((m) => { body[m.apiField] = formValues[m.key].trim(); });
 
-      const res = await fetch("http://localhost:8000/api/manual-entry", {
+      const res = await fetch("${API_BASE}/api/manual-entry", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify(body),

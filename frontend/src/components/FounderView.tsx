@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import "@/styles/cometa-branding.css";
 import { useDataLoader } from "@/hooks/useDataLoader";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
 import CometaLoader from "@/components/CometaLoader";
 import FileUploader from "@/components/FileUploader";
 
@@ -15,7 +17,7 @@ export default function FounderView({ companyDomain }: FounderViewProps) {
 
   // Usar el hook de carga segura
   const { isLoading, error, data, loadData, reset } = useDataLoader({
-    url: `http://localhost:8000/api/results?company_id=${encodeURIComponent(companyDomain)}`,
+    url: `${API_BASE}/api/results?company_id=${encodeURIComponent(companyDomain)}`,
     onSuccess: (data) => {
       console.log("[FounderView] Datos cargados exitosamente:", data);
     },

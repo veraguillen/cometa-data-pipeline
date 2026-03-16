@@ -4,6 +4,8 @@ import { useState, useRef } from "react";
 import "@/styles/cometa-branding.css";
 import CometaLoader from "@/components/CometaLoader";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+
 interface FileUploaderProps {
   companyDomain: string;
   onUploadSuccess?: () => void;
@@ -62,7 +64,7 @@ export default function FileUploader({ companyDomain, onUploadSuccess, onUploadE
       });
 
       // Configurar eventos
-      xhr.open('POST', 'http://localhost:8000/upload', true);
+      xhr.open('POST', '${API_BASE}/upload', true);
       
       // Enviar headers personalizados
       xhr.setRequestHeader('founder-email', 'test@startup.com');

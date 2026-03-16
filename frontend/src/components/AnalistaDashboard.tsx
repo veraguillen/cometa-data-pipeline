@@ -9,6 +9,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import FinancialCharts from "@/components/charts/FinancialCharts";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
 import MobileNav from "@/components/MobileNav";
 import { KPICard, KPICardSkeleton } from "@/components/kpi-card";
 import { EmptyState } from "@/components/empty-state";
@@ -548,7 +550,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
 
   useEffect(() => {
     setIsLoadingResults(true);
-    fetch("http://localhost:8000/api/results/all")
+    fetch("${API_BASE}/api/results/all")
       .then((r) => r.json())
       .then((data) => {
         if (data.status === "success") {
@@ -590,7 +592,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
   useEffect(() => {
     setIsLoadingAnalytics(true);
     setAnalyticsData(null);
-    fetch(`http://localhost:8000/api/analytics/portfolio?portfolio_id=${activePortfolio}`)
+    fetch(`${API_BASE}/api/analytics/portfolio?portfolio_id=${activePortfolio}`)
       .then((r) => r.json())
       .then((data) => {
         if (data.status === "success" && (data.series ?? []).length > 0) {
@@ -611,7 +613,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     setAuditDeleting((prev) => new Set([...prev, fileHash]));
     try {
       await fetch(
-        `http://localhost:8000/api/submission?file_hash=${encodeURIComponent(fileHash)}&company_id=${encodeURIComponent(companyId)}`,
+        `${API_BASE}/api/submission?file_hash=${encodeURIComponent(fileHash)}&company_id=${encodeURIComponent(companyId)}`,
         { method: "DELETE" }
       );
       setAllResults((prev) => prev.filter((r) => r.metadata.file_hash !== fileHash));
@@ -631,7 +633,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     if (!manualCompany) return;
     setManualSaving(true);
     try {
-      await fetch("http://localhost:8000/api/manual-entry", {
+      await fetch("${API_BASE}/api/manual-entry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -699,7 +701,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     const submissionId = selectedResult.metadata.submission_id;
     if (submissionId) {
       changed.forEach((m) => {
-        fetch("http://localhost:8000/api/kpi-update", {
+        fetch("${API_BASE}/api/kpi-update", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

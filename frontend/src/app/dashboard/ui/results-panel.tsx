@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/components/LayoutWrapper";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
 import { parseFinancialValue, getMetricColor, formatRelativeDate, truncateFilename } from "@/lib/financial-utils";
 
 // No exportar el tipo para evitar importaciones circulares
@@ -146,7 +148,7 @@ export default function ResultsPanel({
         
         // Agregar cache-busting para asegurar datos frescos
         const timestamp = Date.now();
-        const response = await fetch(`http://localhost:8000/api/results?company_id=${encodeURIComponent(companyId)}&t=${timestamp}`, {
+        const response = await fetch(`${API_BASE}/api/results?company_id=${encodeURIComponent(companyId)}&t=${timestamp}`, {
           method: "GET",
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",

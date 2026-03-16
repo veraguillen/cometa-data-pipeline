@@ -79,11 +79,8 @@ if os.path.isdir(_assets_dir):
 
 @app.get("/", include_in_schema=False)
 async def root():
-    """Ruta raíz — sirve el dashboard HTML principal."""
-    html_path = os.path.join(BASE_DIR, "templates", "dashboard.html")
-    if not os.path.exists(html_path):
-        return {"status": "ok", "service": "cometa-vault-api", "docs": "/docs"}
-    return FileResponse(html_path)
+    """Ruta raíz — estado del API (el frontend es el servicio Next.js separado)."""
+    return {"status": "ok", "service": "cometa-vault-api", "docs": "/docs"}
 
 # Configuración
 PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", "cometa-mvp")
