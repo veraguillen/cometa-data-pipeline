@@ -1138,33 +1138,6 @@ Analiza el documento adjunto y responde con el JSON completo. Nada más.
         print(f"❌ [API] Error general en upload: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error en el servidor: {str(e)}")
 
-@app.get("/upload-page", response_class=HTMLResponse)
-async def get_upload_page():
-    """
-    Sirve la página de subida de archivos
-    """
-    try:
-        with open("templates/upload.html", "r", encoding="utf-8") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Template no encontrado")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error cargando página de subida: {str(e)}")
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def get_dashboard():
-    """
-    Sirve el dashboard de visualización
-    """
-    try:
-        with open("templates/dashboard.html", "r", encoding="utf-8") as f:
-            html_content = f.read()
-        return HTMLResponse(content=html_content)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="Template no encontrado")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error cargando dashboard: {str(e)}")
 
 @app.get("/api/result/{file_hash}")
 async def get_analysis_result(file_hash: str):
