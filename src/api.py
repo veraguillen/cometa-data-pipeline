@@ -6,7 +6,7 @@ if sys.stderr.encoding != "utf-8":
 
 from fastapi import FastAPI, UploadFile, File, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, model_validator
 import os
@@ -79,8 +79,7 @@ if os.path.isdir(_assets_dir):
 
 @app.get("/", include_in_schema=False)
 async def root():
-    """Ruta raíz — estado del API (el frontend es el servicio Next.js separado)."""
-    return {"status": "ok", "service": "cometa-vault-api", "docs": "/docs"}
+    return {"status": "online", "message": "Cometa API v1"}
 
 # Configuración
 PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", "cometa-mvp")

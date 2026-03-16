@@ -39,7 +39,6 @@ COPY --from=builder /install /usr/local
 
 # Copiar código fuente
 COPY src/       ./src/
-COPY templates/ ./templates/
 COPY assets/    ./assets/
 
 # Cloud Run exige el puerto 8080
