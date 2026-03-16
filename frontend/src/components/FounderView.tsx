@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import "@/styles/cometa-branding.css";
 import { useDataLoader } from "@/hooks/useDataLoader";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 import CometaLoader from "@/components/CometaLoader";
 import FileUploader from "@/components/FileUploader";
 

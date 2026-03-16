@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser } from "@/components/LayoutWrapper";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 import { parseFinancialValue, getMetricColor, formatRelativeDate, truncateFilename } from "@/lib/financial-utils";
 
 // No exportar el tipo para evitar importaciones circulares

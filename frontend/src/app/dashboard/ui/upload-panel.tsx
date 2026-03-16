@@ -3,7 +3,7 @@
 import { useRef, useState, useMemo } from "react";
 import { sha256Hex } from "@/lib/sha256";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 interface UploadResponse {
   duplicate?: boolean;
@@ -49,7 +49,7 @@ export default function UploadPanel({
 
       setStatusMessage("Enviando reporte a Cometa...");
 
-      const res = await fetch("${API_BASE}/upload", {
+      const res = await fetch(`${API_BASE}/upload`, {
         method: "POST",
         headers: {
           "founder-email": founderEmail,

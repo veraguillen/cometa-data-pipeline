@@ -9,8 +9,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import FinancialCharts from "@/components/charts/FinancialCharts";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
 import MobileNav from "@/components/MobileNav";
 import { KPICard, KPICardSkeleton } from "@/components/kpi-card";
 import { EmptyState } from "@/components/empty-state";
@@ -18,6 +16,8 @@ import FidelityAuditPanel from "@/components/FidelityAuditPanel";
 import { cn } from "@/lib/utils";
 import { BarChart3, Building2, ShieldCheck, ChevronRight } from "lucide-react";
 import "@/styles/cometa-branding.css";
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -550,7 +550,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
 
   useEffect(() => {
     setIsLoadingResults(true);
-    fetch("${API_BASE}/api/results/all")
+    fetch(`${API_BASE}/api/results/all`)
       .then((r) => r.json())
       .then((data) => {
         if (data.status === "success") {
@@ -633,7 +633,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     if (!manualCompany) return;
     setManualSaving(true);
     try {
-      await fetch("${API_BASE}/api/manual-entry", {
+      await fetch(`${API_BASE}/api/manual-entry`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -701,7 +701,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     const submissionId = selectedResult.metadata.submission_id;
     if (submissionId) {
       changed.forEach((m) => {
-        fetch("${API_BASE}/api/kpi-update", {
+        fetch(`${API_BASE}/api/kpi-update`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useUser } from "./LayoutWrapper";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "${API_BASE}";
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 import UploadPanel from "@/app/dashboard/ui/upload-panel";
 import ResultsPanel from "@/app/dashboard/ui/results-panel";
 import FinancialCharts from "@/components/charts/FinancialCharts";
