@@ -1,4 +1,5 @@
 import os
+import json
 import time
 from google.cloud import documentai_v1 as documentai
 from google.cloud import storage
@@ -12,15 +13,22 @@ class DocumentAIAdapter:
         self.project_id = project_id
         self.location = location
         self.processor_id = processor_id
-        
-        # Validar credenciales de forma estricta
-        ruta_json = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-        print(f"🔍 [Document AI] Variable de entorno GOOGLE_APPLICATION_CREDENTIALS: {ruta_json}")
-        if not ruta_json or not os.path.exists(ruta_json):
-            raise ValueError(f"🚨 ERROR CRÍTICO: No existe el archivo de llaves en: {ruta_json}")
-        
-        print(f"🔐 [Document AI] Usando credenciales desde: {ruta_json}")
-        credentials = service_account.Credentials.from_service_account_file(ruta_json)
+
+        # Prioridad 1: GCP_SERVICE_ACCOUNT_JSON (Cloud Run + Secret Manager)
+        sa_json_str = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
+        if sa_json_str:
+            print("🔐 [Document AI] Usando GCP_SERVICE_ACCOUNT_JSON (Secret Manager)")
+            credentials = service_account.Credentials.from_service_account_info(
+                json.loads(sa_json_str)
+            )
+        else:
+            # Prioridad 2: GOOGLE_APPLICATION_CREDENTIALS (archivo, dev local)
+            ruta_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+            print(f"🔍 [Document AI] GOOGLE_APPLICATION_CREDENTIALS: {ruta_json}")
+            if not ruta_json or not os.path.exists(ruta_json):
+                raise ValueError(f"🚨 ERROR CRÍTICO: No existe el archivo de llaves en: {ruta_json}")
+            print(f"🔐 [Document AI] Usando credenciales desde: {ruta_json}")
+            credentials = service_account.Credentials.from_service_account_file(ruta_json)
         
         # Inicializar cliente con endpoint específico y credenciales
         client_opts = client_options.ClientOptions(
