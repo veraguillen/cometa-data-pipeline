@@ -756,8 +756,8 @@ async def upload_pdf(
 
         # Guardar temporalmente para procesamiento
         safe_filename = file.filename.replace(" ", "_")
-        temp_path = f"temp/{file_hash}_{safe_filename}"
-        os.makedirs("temp", exist_ok=True)
+        temp_path = os.path.join('/tmp', f"{file_hash}_{safe_filename}")
+        os.makedirs('/tmp', exist_ok=True)
 
         with open(temp_path, "wb") as temp_file:
             temp_file.write(file_content)
