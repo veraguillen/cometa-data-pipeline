@@ -18,9 +18,17 @@ class DocumentAIAdapter:
         sa_json_str = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
         if sa_json_str:
             print("🔐 [Document AI] Usando GCP_SERVICE_ACCOUNT_JSON (Secret Manager)")
-            credentials = service_account.Credentials.from_service_account_info(
-                json.loads(sa_json_str)
-            )
+            raw = sa_json_str.strip()
+            parsed = json.loads(raw)
+            if isinstance(parsed, str):
+                print("⚠️  [Document AI] JSON doblemente serializado — decodificando de nuevo")
+                parsed = json.loads(parsed)
+            required = {"type", "project_id", "private_key", "client_email"}
+            missing = required - parsed.keys()
+            if missing:
+                raise ValueError(f"[Document AI] GCP_SERVICE_ACCOUNT_JSON le faltan campos: {missing}. Claves: {list(parsed.keys())}")
+            print(f"✅  [Document AI] SA JSON OK — client_email: {parsed.get('client_email')}")
+            credentials = service_account.Credentials.from_service_account_info(parsed)
         else:
             # Prioridad 2: GOOGLE_APPLICATION_CREDENTIALS (archivo, dev local)
             ruta_json = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")

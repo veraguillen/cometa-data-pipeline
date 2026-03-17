@@ -98,6 +98,31 @@ def _resolve_service_account_path() -> str | None:
     fallback = os.path.join(repo_root, "cometa_key.json")
     return fallback if os.path.exists(fallback) else None
 
+def _parse_sa_json(raw: str, tag: str = "") -> dict:
+    """
+    Parsea el JSON de una service account desde una variable de entorno,
+    tolerando: espacios/newlines extra y doble-serialización (string dentro de string).
+    Lanza ValueError con diagnóstico si el resultado no tiene los campos requeridos.
+    """
+    raw = raw.strip()
+    parsed = json.loads(raw)
+    # Doble-serialización: el valor del secreto era una cadena JSON (string de string)
+    if isinstance(parsed, str):
+        print(f"⚠️  {tag} GCP_SERVICE_ACCOUNT_JSON estaba doblemente serializado — decodificando de nuevo")
+        parsed = json.loads(parsed)
+    if not isinstance(parsed, dict):
+        raise ValueError(f"{tag} GCP_SERVICE_ACCOUNT_JSON no es un objeto JSON válido (tipo: {type(parsed).__name__})")
+    required = {"type", "project_id", "private_key", "client_email"}
+    missing = required - parsed.keys()
+    if missing:
+        raise ValueError(
+            f"{tag} GCP_SERVICE_ACCOUNT_JSON le faltan campos: {missing}. "
+            f"Claves presentes: {list(parsed.keys())}"
+        )
+    print(f"✅  {tag} Service account JSON OK — client_email: {parsed.get('client_email')}")
+    return parsed
+
+
 def _load_gcp_credentials():
     # ── Prioridad 1: GCP_SERVICE_ACCOUNT_JSON (Cloud Run + Secret Manager) ──────
     # El JSON completo se inyecta como variable de entorno desde Secret Manager.
@@ -105,7 +130,7 @@ def _load_gcp_credentials():
     sa_json_str = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
     if sa_json_str:
         print("🔐 [GCP] Usando GCP_SERVICE_ACCOUNT_JSON (Secret Manager)")
-        sa_info = json.loads(sa_json_str)
+        sa_info = _parse_sa_json(sa_json_str, "[GCP]")
         creds = service_account.Credentials.from_service_account_info(sa_info)
         creds_project = getattr(creds, "project_id", None)
         if creds_project and creds_project != PROJECT_ID:

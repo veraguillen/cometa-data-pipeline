@@ -19,11 +19,24 @@ class GeminiAuditor:
         import json as _json
         creds = None
 
+        def _parse(raw: str) -> dict:
+            raw = raw.strip()
+            parsed = _json.loads(raw)
+            if isinstance(parsed, str):
+                print("⚠️  [Gemini] JSON doblemente serializado — decodificando de nuevo")
+                parsed = _json.loads(parsed)
+            required = {"type", "project_id", "private_key", "client_email"}
+            missing = required - parsed.keys()
+            if missing:
+                raise ValueError(f"[Gemini] GCP_SERVICE_ACCOUNT_JSON le faltan campos: {missing}. Claves: {list(parsed.keys())}")
+            print(f"✅  [Gemini] SA JSON OK — client_email: {parsed.get('client_email')}")
+            return parsed
+
         # ── Prioridad 1: GCP_SERVICE_ACCOUNT_JSON (Cloud Run + Secret Manager) ──
         sa_json_str = os.getenv("GCP_SERVICE_ACCOUNT_JSON")
         if sa_json_str:
             print("🔐 [Gemini] Usando GCP_SERVICE_ACCOUNT_JSON (Secret Manager)")
-            sa_info = _json.loads(sa_json_str)
+            sa_info = _parse(sa_json_str)
             creds = service_account.Credentials.from_service_account_info(sa_info)
             creds_project = getattr(creds, "project_id", None)
             if creds_project and creds_project != project_id:
