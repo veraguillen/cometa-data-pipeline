@@ -947,7 +947,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                 <button
                   onClick={handleManualSave}
                   disabled={!manualCompany || manualSaving}
-                  className="px-5 py-2 rounded-xl border border-[#64CAE4]/30 font-cometa-extralight text-white/80 text-[11px] tracking-[0.12em] uppercase hover:border-[#64CAE4]/65 hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="px-6 py-2 rounded-full border border-[#64CAE4]/30 bg-white/[0.04] shadow-sm font-cometa-extralight text-white/80 text-[11px] tracking-[0.12em] uppercase hover:border-[#64CAE4]/60 hover:bg-[#64CAE4]/[0.08] hover:text-white hover:shadow-[0_0_12px_rgba(100,202,228,0.12)] active:scale-[0.97] transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:shadow-none disabled:active:scale-100"
                 >
                   {manualSaving ? "Guardando…" : "Guardar en BigQuery"}
                 </button>
@@ -1157,7 +1157,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                   <select
                     value={selectedCompany ?? ""}
                     onChange={(e) => setSelectedCompany(e.target.value || null)}
-                    className="appearance-none rounded-lg px-3 py-1.5 pr-7 text-[10px] font-cometa-extralight tracking-[0.14em] uppercase text-white/70 bg-white/[0.04] border border-white/[0.1] hover:border-[#64CAE4]/30 focus:border-[#64CAE4]/40 focus:outline-none transition-colors"
+                    className="appearance-none rounded-full px-4 py-1.5 pr-8 text-[10px] font-cometa-extralight tracking-[0.14em] uppercase text-white/70 bg-white/[0.06] border border-white/[0.12] shadow-sm hover:border-[#64CAE4]/40 hover:bg-white/[0.09] focus:border-[#64CAE4]/50 focus:outline-none transition-all duration-200 cursor-pointer"
                   >
                     <option value="" className="bg-black text-white/50">Todas las empresas</option>
                     {Array.from(new Set(allResults.map(getCompanyLabel))).sort().map((name) => (
@@ -1174,7 +1174,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
 
               <button
                 onClick={openEdit}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#64CAE4]/20 hover:border-[#64CAE4]/45 transition-colors flex-shrink-0"
+                className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#64CAE4]/25 bg-white/[0.04] shadow-sm hover:border-[#64CAE4]/55 hover:bg-[#64CAE4]/[0.08] hover:shadow-[0_0_12px_rgba(100,202,228,0.12)] active:scale-[0.97] transition-all duration-200 flex-shrink-0"
               >
                 {/* Pencil icon */}
                 <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
@@ -1231,8 +1231,10 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                   <div
                     key={m.label}
                     className={[
-                      "cometa-card-gradient p-4 md:p-5 cometa-fade-in",
-                      lowConf ? "ring-1 ring-amber-400/15" : "",
+                      "cometa-card-gradient rounded-xl p-5 md:p-6 cometa-fade-in",
+                      "shadow-[0_2px_12px_rgba(0,0,0,0.25)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.35)]",
+                      "hover:border-white/[0.14] transition-all duration-300",
+                      lowConf ? "ring-1 ring-amber-400/20" : "",
                       savedMetrics.has(m.label) ? "cometa-card-saved" : "",
                     ].join(" ").trim()}
                     style={{
@@ -1242,33 +1244,35 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                     }}
                   >
                     {/* Label row: metric name + low-confidence badge */}
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="cometa-metric-label">{m.label}</div>
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <span className="text-[10px] font-cometa-extralight tracking-[0.16em] uppercase text-white/35">
+                        {m.label}
+                      </span>
                       {lowConf && (
                         <div className="flex items-center gap-1 flex-shrink-0 mt-px">
                           <span className="block w-1.5 h-1.5 rounded-full bg-amber-400/70 flex-shrink-0" />
-                          <span className="font-cometa-extralight text-amber-400/60 text-[9px] tracking-wider leading-none">
+                          <span className="font-cometa-extralight text-amber-400/55 text-[9px] tracking-wider leading-none">
                             {Math.round((conf ?? 0) * 100)}%
                           </span>
                         </div>
                       )}
                     </div>
 
-                    {/* Metric value — transitions smoothly between original / USD */}
+                    {/* Metric value */}
                     <div
-                      className="cometa-metric-fluid transition-all duration-500"
+                      className="text-2xl font-light tracking-tight transition-all duration-500 leading-none"
                       style={{
                         color: displayValue
-                          ? "rgba(255,255,255,0.90)"
-                          : "rgba(255,255,255,0.2)",
+                          ? accent ? "rgba(100,202,228,0.95)" : "rgba(255,255,255,0.92)"
+                          : "rgba(255,255,255,0.18)",
                       }}
                     >
                       {displayValue ?? "—"}
                     </div>
 
-                    {/* USD mode: subtle "≈ USD" label for converted monetary values */}
+                    {/* USD mode: subtle "≈ USD" label */}
                     {usdValue && (
-                      <div className="mt-1 font-cometa-extralight text-white/35 text-[9px] tracking-[0.14em] uppercase transition-all duration-500">
+                      <div className="mt-1.5 font-cometa-extralight text-white/30 text-[9px] tracking-[0.16em] uppercase transition-all duration-500">
                         ≈ USD
                       </div>
                     )}
@@ -1550,13 +1554,13 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
             <div className="flex items-center justify-end gap-3 mt-8 pt-6 border-t border-white/[0.05]">
               <button
                 onClick={() => setEditOpen(false)}
-                className="font-cometa-extralight text-white/30 text-[11px] hover:text-white/60 tracking-wider transition-colors px-4 py-2"
+                className="font-cometa-extralight text-white/30 text-[11px] hover:text-white/60 tracking-wider transition-colors px-5 py-2 rounded-full hover:bg-white/[0.04]"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSave}
-                className="px-5 py-2 rounded-xl border border-[#64CAE4]/30 font-cometa-extralight text-white/80 text-[11px] tracking-[0.12em] uppercase hover:border-[#64CAE4]/65 hover:text-white transition-colors"
+                className="px-6 py-2 rounded-full border border-[#64CAE4]/30 bg-white/[0.04] shadow-sm font-cometa-extralight text-white/80 text-[11px] tracking-[0.12em] uppercase hover:border-[#64CAE4]/60 hover:bg-[#64CAE4]/[0.08] hover:text-white hover:shadow-[0_0_12px_rgba(100,202,228,0.12)] active:scale-[0.97] transition-all duration-200"
               >
                 Guardar
               </button>
