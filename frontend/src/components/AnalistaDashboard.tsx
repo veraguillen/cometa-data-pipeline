@@ -74,6 +74,12 @@ type AnalysisResult = {
   };
 };
 
+type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
+  sourcesCount?: number;
+};
+
 // ─── Metric cards config ──────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -510,7 +516,6 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
   const [isMockMode, setIsMockMode]             = useState(false);
   const [selectedCompany, setSelectedCompany]   = useState<string | null>(null);
   // ── Chat IA state ──────────────────────────────────────────────────────────
-  type ChatMessage = { role: "user" | "assistant"; content: string; sourcesCount?: number };
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput]       = useState("");
   const [isSending, setIsSending]       = useState(false);
