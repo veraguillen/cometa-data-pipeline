@@ -18,7 +18,10 @@ substitutions:
   _BACKEND_SERVICE: cometa-vault-test
   _FRONTEND_SERVICE: cometa-vault-frontend
   _SA_EMAIL: cometa-vault-sa@cometa-mvp.iam.gserviceaccount.com
-  _NEXT_PUBLIC_API_URL: https://cometa-vault-test-placeholder.a.run.app
+  _NEXT_PUBLIC_API_URL: https://cometa-vault-92572839783.us-central1.run.app
+  _GCS_INPUT_BUCKET: ingesta-financiera-raw-cometa-mvp
+  _GCS_OUTPUT_BUCKET: ingesta-financiera-raw-cometa-mvp
+  _BIGQUERY_DATASET: cometa_vault
 
 options:
   logging: CLOUD_LOGGING_ONLY
@@ -89,11 +92,10 @@ steps:
       - --max-instances=10
       - --concurrency=10
       - --timeout=300
-      - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID}
-      # GCP_SERVICE_ACCOUNT_JSON: el contenido JSON del secreto se inyecta como
-      # variable de entorno. El código usa from_service_account_info() — no necesita
-      # ningún archivo físico dentro del contenedor.
-      - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest,BIGQUERY_DATASET=cometa-bq-dataset:latest,GCS_INPUT_BUCKET=cometa-gcs-bucket:latest
+      - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID},GCS_INPUT_BUCKET=${_GCS_INPUT_BUCKET},GCS_OUTPUT_BUCKET=${_GCS_OUTPUT_BUCKET},BIGQUERY_DATASET=${_BIGQUERY_DATASET}
+      # GCP_SERVICE_ACCOUNT_JSON: único secreto real — el JSON completo de la
+      # service account se inyecta desde Secret Manager como variable de entorno.
+      - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest
 
   # ── 6. Deploy Frontend ────────────────────────────────────────────────────────
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
