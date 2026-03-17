@@ -14,7 +14,7 @@ import { KPICard, KPICardSkeleton } from "@/components/kpi-card";
 import { EmptyState } from "@/components/empty-state";
 import FidelityAuditPanel from "@/components/FidelityAuditPanel";
 import { cn } from "@/lib/utils";
-import { BarChart3, Building2, ShieldCheck, ChevronRight } from "lucide-react";
+import { BarChart3, Building2, ShieldCheck, ChevronRight, MessageCircle, Send } from "lucide-react";
 import "@/styles/cometa-branding.css";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -496,7 +496,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
   const [isLoadingResults, setIsLoadingResults] = useState(true);
   const [activePortfolio, setActivePortfolio]   = useState<PortfolioId>("CIII");
   const [portfolioFlash, setPortfolioFlash]     = useState(false);
-  const [activeTab, setActiveTab]               = useState<"supervision" | "manual" | "audit">("supervision");
+  const [activeTab, setActiveTab]               = useState<"supervision" | "manual" | "audit" | "chat">("supervision");
   // ── Entrada Manual state ──────────────────────────────────────────────────
   const [manualCompany, setManualCompany]       = useState("");
   const [manualPortfolio, setManualPortfolio]   = useState<PortfolioId>("CIII");
@@ -509,6 +509,12 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isMockMode, setIsMockMode]             = useState(false);
   const [selectedCompany, setSelectedCompany]   = useState<string | null>(null);
+  // ── Chat IA state ──────────────────────────────────────────────────────────
+  type ChatMessage = { role: "user" | "assistant"; content: string; sourcesCount?: number };
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput]       = useState("");
+  const [isSending, setIsSending]       = useState(false);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const savedTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portfolioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -739,6 +745,49 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
     }
   }
 
+  // ── Chat IA ───────────────────────────────────────────────────────────────
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  async function sendChat() {
+    const q = chatInput.trim();
+    if (!q || isSending) return;
+    setChatInput("");
+    setIsSending(true);
+    setChatMessages((prev) => [...prev, { role: "user", content: q }]);
+    try {
+      const res = await fetch(`${API_BASE}/api/chat`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({
+          question:     q,
+          portfolio_id: activePortfolio,
+          company_id:   selectedCompany ?? undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: data.answer, sourcesCount: data.sources_count },
+        ]);
+      } else {
+        setChatMessages((prev) => [
+          ...prev,
+          { role: "assistant", content: `Error: ${data.detail ?? "No se pudo obtener respuesta."}` },
+        ]);
+      }
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "Error de conexión con el servidor." },
+      ]);
+    } finally {
+      setIsSending(false);
+    }
+  }
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   // Fund stats for sidebar (derived from filteredResults)
@@ -790,9 +839,10 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
           </span>
           <div className="space-y-1">
             {([
-              { id: "supervision" as const, label: "Supervisión",    icon: BarChart3  },
-              { id: "manual"      as const, label: "Entrada Manual", icon: Building2  },
-              { id: "audit"       as const, label: "Auditoría",      icon: ShieldCheck},
+              { id: "supervision" as const, label: "Supervisión",    icon: BarChart3     },
+              { id: "manual"      as const, label: "Entrada Manual", icon: Building2     },
+              { id: "audit"       as const, label: "Auditoría",      icon: ShieldCheck   },
+              { id: "chat"        as const, label: "Chat IA",        icon: MessageCircle },
             ]).map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -951,6 +1001,137 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                 >
                   {manualSaving ? "Guardando…" : "Guardar en BigQuery"}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Chat IA tab ── */}
+        {activeTab === "chat" && (
+          <div className={`transition-opacity duration-500 ${mounted ? "opacity-100" : "opacity-0"} flex flex-col h-[calc(100vh-6rem)]`}>
+            <div className="cometa-card-gradient flex flex-col flex-1 min-h-0 p-5 md:p-7">
+
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5 flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="block w-0.5 h-5 bg-gradient-to-b from-[#00237F] to-[#64CAE4] rounded-full flex-shrink-0" />
+                  <span className="cometa-label text-white/70">Chat IA · Portafolio {activePortfolio}</span>
+                  {selectedCompany && (
+                    <span className="px-2.5 py-0.5 rounded-full border border-[#64CAE4]/20 font-cometa-extralight text-[9px] tracking-[0.16em] uppercase text-[#64CAE4]/70">
+                      {selectedCompany}
+                    </span>
+                  )}
+                </div>
+                {chatMessages.length > 0 && (
+                  <button
+                    onClick={() => setChatMessages([])}
+                    className="font-cometa-extralight text-[9px] tracking-widest uppercase text-white/20 hover:text-white/50 transition-colors"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+
+              {/* Messages thread */}
+              <div className="flex-1 min-h-0 overflow-y-auto space-y-4 pr-1 cometa-table-scroll">
+                {chatMessages.length === 0 && (
+                  <div className="flex flex-col items-center justify-center h-full gap-4 py-12">
+                    <MessageCircle className="w-8 h-8 text-white/10" />
+                    <p className="font-cometa-extralight text-white/25 text-sm text-center leading-relaxed max-w-xs">
+                      Pregunta sobre las métricas del portafolio.<br />
+                      <span className="text-white/15 text-xs">Ej: "¿Cuál empresa tiene mejor Revenue Growth?"</span>
+                    </p>
+                    {/* Quick prompts */}
+                    <div className="flex flex-wrap gap-2 justify-center mt-2">
+                      {[
+                        "¿Qué empresa tiene el mayor Revenue Growth?",
+                        "Compara EBITDA Margin entre compañías",
+                        "¿Cuál tiene mejor posición de caja?",
+                      ].map((q) => (
+                        <button
+                          key={q}
+                          onClick={() => { setChatInput(q); }}
+                          className="px-3 py-1.5 rounded-full border border-white/[0.08] font-cometa-extralight text-white/35 text-[10px] tracking-wide hover:border-[#64CAE4]/25 hover:text-white/55 transition-all duration-200"
+                        >
+                          {q}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {chatMessages.map((msg, idx) => (
+                  <div
+                    key={idx}
+                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    {msg.role === "assistant" && (
+                      <div className="w-6 h-6 rounded-full bg-[#64CAE4]/10 border border-[#64CAE4]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-2 h-2 rounded-full bg-[#64CAE4]/60" />
+                      </div>
+                    )}
+                    <div
+                      className={[
+                        "max-w-[80%] rounded-2xl px-4 py-3 text-sm font-cometa-extralight leading-relaxed",
+                        msg.role === "user"
+                          ? "bg-white/[0.07] border border-white/[0.1] text-white/80 rounded-tr-sm"
+                          : "bg-[#64CAE4]/[0.05] border border-[#64CAE4]/[0.12] text-white/75 rounded-tl-sm",
+                      ].join(" ")}
+                    >
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                      {msg.role === "assistant" && msg.sourcesCount !== undefined && (
+                        <p className="mt-2 text-[9px] tracking-widest uppercase text-white/20">
+                          {msg.sourcesCount} filas de BigQuery consultadas
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+
+                {isSending && (
+                  <div className="flex gap-3 justify-start">
+                    <div className="w-6 h-6 rounded-full bg-[#64CAE4]/10 border border-[#64CAE4]/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <div className="w-2 h-2 rounded-full bg-[#64CAE4]/60 animate-pulse" />
+                    </div>
+                    <div className="bg-[#64CAE4]/[0.05] border border-[#64CAE4]/[0.12] rounded-2xl rounded-tl-sm px-4 py-3">
+                      <div className="flex gap-1 items-center h-4">
+                        {[0, 1, 2].map((i) => (
+                          <span
+                            key={i}
+                            className="block w-1.5 h-1.5 rounded-full bg-[#64CAE4]/40 animate-bounce"
+                            style={{ animationDelay: `${i * 0.15}s` }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={chatEndRef} />
+              </div>
+
+              {/* Input bar */}
+              <div className="flex-shrink-0 pt-4 mt-2 border-t border-white/[0.05]">
+                <div className="flex gap-2 items-end">
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendChat(); }
+                    }}
+                    placeholder="Pregunta sobre el portafolio… (Enter para enviar)"
+                    rows={1}
+                    disabled={isSending}
+                    className="flex-1 resize-none rounded-2xl px-4 py-3 font-cometa-extralight text-white/75 text-sm bg-white/[0.04] border border-white/[0.08] focus:border-[#64CAE4]/35 focus:outline-none transition-colors placeholder:text-white/20 disabled:opacity-50"
+                    style={{ maxHeight: "120px" }}
+                  />
+                  <button
+                    onClick={sendChat}
+                    disabled={!chatInput.trim() || isSending}
+                    className="flex-shrink-0 w-10 h-10 rounded-full border border-[#64CAE4]/25 bg-white/[0.04] flex items-center justify-center hover:border-[#64CAE4]/55 hover:bg-[#64CAE4]/[0.08] active:scale-95 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:active:scale-100"
+                  >
+                    <Send className="w-4 h-4 text-[#64CAE4]/70" />
+                  </button>
+                </div>
               </div>
             </div>
           </div>

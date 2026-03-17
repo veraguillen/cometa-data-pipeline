@@ -211,6 +211,61 @@ def _is_financial_document(resultado: dict) -> bool:
             return True
     return False
 
+# ── RAG / Chat helpers ────────────────────────────────────────────────────────
+
+def _get_bq_client_for_api():
+    """BigQuery client using the same credential chain as the rest of the API."""
+    from google.cloud import bigquery as bq
+    try:
+        creds = _load_gcp_credentials()
+        return bq.Client(project=PROJECT_ID, credentials=creds)
+    except Exception:
+        return bq.Client(project=PROJECT_ID)
+
+
+def _query_rag_context(portfolio_id: str | None, company_id: str | None) -> list[dict]:
+    """
+    Fetches the latest valid KPI rows from BigQuery to use as RAG context.
+    Returns up to 400 rows ordered by submission date DESC.
+    """
+    ds = f"{PROJECT_ID}.{os.getenv('BIGQUERY_DATASET', 'cometa_vault')}"
+    filters = ["f.is_valid = TRUE", "f.raw_value IS NOT NULL"]
+    params  = []
+
+    from google.cloud import bigquery as bq
+
+    if portfolio_id:
+        filters.append("s.portfolio_id = @portfolio_id")
+        params.append(bq.ScalarQueryParameter("portfolio_id", "STRING", portfolio_id))
+    if company_id:
+        filters.append("LOWER(s.company_id) LIKE @company_id")
+        params.append(bq.ScalarQueryParameter("company_id", "STRING", f"%{company_id.lower()}%"))
+
+    where = " AND ".join(filters)
+    sql = f"""
+        SELECT
+            s.company_id,
+            s.portfolio_id,
+            s.period_id,
+            f.kpi_label,
+            f.raw_value,
+            f.unit
+        FROM `{ds}.fact_kpi_values` f
+        JOIN `{ds}.submissions`      s ON f.submission_id = s.submission_id
+        WHERE {where}
+        ORDER BY s.submitted_at DESC
+        LIMIT 400
+    """
+    try:
+        client = _get_bq_client_for_api()
+        job    = client.query(sql, job_config=bq.QueryJobConfig(query_parameters=params))
+        rows   = list(job.result())
+        return [dict(r) for r in rows]
+    except Exception as e:
+        print(f"[RAG] BQ query failed: {e}")
+        return []
+
+
 # ── Multi-format processing helpers ──────────────────────────────────────────
 
 # Maximum rows rendered per sheet to stay within Gemini's token budget.
@@ -1764,6 +1819,78 @@ async def get_fidelity_audit(submission_id: str):
     except Exception as e:
         print(f"[API/fidelity-audit] Error: {e}")
         raise HTTPException(status_code=500, detail=f"Error ejecutando fidelity audit: {str(e)}")
+
+
+# ── RAG Chat endpoint ─────────────────────────────────────────────────────────
+
+class ChatRequest(BaseModel):
+    question:     str
+    portfolio_id: str | None = None
+    company_id:   str | None = None
+
+@app.post("/api/chat")
+async def portfolio_chat(req: ChatRequest):
+    """
+    RAG chat: consulta BigQuery → arma contexto → llama Gemini → devuelve respuesta.
+    Disponible solo para analistas Cometa.
+    """
+    if not req.question or not req.question.strip():
+        raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+
+    # 1. Recuperar contexto de BigQuery
+    rows = _query_rag_context(req.portfolio_id, req.company_id)
+
+    if rows:
+        header = "empresa | fondo | período | kpi | valor | unidad"
+        lines  = [
+            f"{r.get('company_id','—')} | {r.get('portfolio_id','—')} | "
+            f"{r.get('period_id','—')} | {r.get('kpi_label','—')} | "
+            f"{r.get('raw_value','—')} | {r.get('unit','—')}"
+            for r in rows
+        ]
+        context_text = header + "\n" + "\n".join(lines)
+    else:
+        context_text = "No hay datos financieros en BigQuery para el contexto solicitado."
+
+    # 2. Prompt RAG
+    scope_note = ""
+    if req.portfolio_id:
+        scope_note += f" Fondo activo: {req.portfolio_id}."
+    if req.company_id:
+        scope_note += f" Empresa filtrada: {req.company_id}."
+
+    prompt = (
+        "Eres un analista de inversiones senior de Cometa Ventures con acceso exclusivo "
+        "a los datos financieros del portafolio.\n"
+        f"{scope_note}\n\n"
+        "DATOS FINANCIEROS (BigQuery — últimas submissions válidas):\n"
+        "```\n"
+        f"{context_text}\n"
+        "```\n\n"
+        f"PREGUNTA DEL ANALISTA:\n{req.question.strip()}\n\n"
+        "INSTRUCCIONES:\n"
+        "- Responde en español. Sé conciso y preciso (máx 350 palabras).\n"
+        "- Cita métricas y valores exactos de la tabla cuando sea relevante.\n"
+        "- Si la pregunta no puede responderse con los datos disponibles, indícalo claramente.\n"
+        "- No inventes ni extrapoles cifras que no estén en la tabla.\n"
+    )
+
+    # 3. Llamar Gemini
+    try:
+        gemini = GeminiAuditor(PROJECT_ID, VERTEX_LOCATION)
+        response = gemini.model.generate_content(prompt)
+        answer = response.text
+    except Exception as e:
+        print(f"[RAG/chat] Gemini error: {e}")
+        raise HTTPException(status_code=500, detail=f"Error generando respuesta: {str(e)}")
+
+    return JSONResponse(content={
+        "status":        "success",
+        "answer":        answer,
+        "sources_count": len(rows),
+        "portfolio_id":  req.portfolio_id,
+        "company_id":    req.company_id,
+    })
 
 
 if __name__ == "__main__":
