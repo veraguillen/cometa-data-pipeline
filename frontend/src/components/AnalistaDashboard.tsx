@@ -274,6 +274,21 @@ function cleanFilename(name: string) {
   return name.replace(/^[a-f0-9]+_/, "");
 }
 
+function getCompanyLabel(r: AnalysisResult): string {
+  const domain = r.metadata.founder_email?.split("@")[1]?.split(".")[0] ?? "";
+  const filename = cleanFilename(r.metadata.original_filename).split(/[_.\s-]/)[0];
+  for (const candidate of [domain, filename]) {
+    const match = PORTFOLIO_COMPANIES.find((c) =>
+      candidate.toLowerCase().includes(c.name.toLowerCase()) ||
+      c.name.toLowerCase().includes(candidate.toLowerCase())
+    );
+    if (match) return match.name;
+  }
+  return domain
+    ? domain.charAt(0).toUpperCase() + domain.slice(1)
+    : filename || "Desconocido";
+}
+
 // ─── Portfolio registry (mirrors PORTFOLIO_MAP in db_writer.py) ──────────────
 
 type PortfolioId = "VII" | "CIII";
@@ -493,6 +508,7 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
   const [analyticsData, setAnalyticsData]       = useState<AnalyticsData | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [isMockMode, setIsMockMode]             = useState(false);
+  const [selectedCompany, setSelectedCompany]   = useState<string | null>(null);
   const savedTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const portfolioTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -587,6 +603,13 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
       .finally(() => setIsLoadingResults(false));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Sync selectedResult when user picks a company from the dropdown
+  useEffect(() => {
+    if (!selectedCompany || allResults.length === 0) return;
+    const match = allResults.find((r) => getCompanyLabel(r) === selectedCompany);
+    if (match) setSelectedResult(match);
+  }, [selectedCompany, allResults]);
 
   // Fetch BigQuery portfolio analytics whenever the active portfolio tab changes
   useEffect(() => {
@@ -1128,6 +1151,27 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                 </div>
               )}
 
+              {/* Company selector */}
+              {allResults.length > 1 && (
+                <div className="relative flex-shrink-0">
+                  <select
+                    value={selectedCompany ?? ""}
+                    onChange={(e) => setSelectedCompany(e.target.value || null)}
+                    className="appearance-none rounded-lg px-3 py-1.5 pr-7 text-[10px] font-cometa-extralight tracking-[0.14em] uppercase text-white/70 bg-white/[0.04] border border-white/[0.1] hover:border-[#64CAE4]/30 focus:border-[#64CAE4]/40 focus:outline-none transition-colors"
+                  >
+                    <option value="" className="bg-black text-white/50">Todas las empresas</option>
+                    {Array.from(new Set(allResults.map(getCompanyLabel))).sort().map((name) => (
+                      <option key={name} value={name} className="bg-black text-white/70">{name}</option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                    <svg width="9" height="9" viewBox="0 0 12 12" fill="none" className="opacity-30">
+                      <path d="M2 4.5L6 8.5L10 4.5" stroke="#64CAE4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                </div>
+              )}
+
               <button
                 onClick={openEdit}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#64CAE4]/20 hover:border-[#64CAE4]/45 transition-colors flex-shrink-0"
@@ -1163,7 +1207,12 @@ export default function AnalistaDashboard({ companyDomain, onLogout }: AnalistaD
                 Tablet (md):     2 columns
                 Desktop (lg+):   4 columns               */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              {METRIC_DEFS.map((m, i) => {
+              {METRIC_DEFS.filter((m) => {
+                const raw = m.value(selectedResult.data);
+                if (raw === undefined || raw === null) return false;
+                const s = String(raw).trim();
+                return s !== "" && s !== "0" && s !== "--" && s !== "N/A" && s !== "null";
+              }).map((m, i) => {
                 const raw     = m.value(selectedResult.data);
                 const conf    = m.confidence(selectedResult.data);
                 const lowConf = conf !== undefined && conf < 0.85;
