@@ -173,6 +173,44 @@ def get_file_hash(file_content: bytes) -> str:
     """Genera hash SHA-256 del contenido del archivo"""
     return hashlib.sha256(file_content).hexdigest()[:16]
 
+
+def _is_financial_document(resultado: dict) -> bool:
+    """
+    Devuelve True si Gemini extrajo al menos 1 KPI financiero con valor real.
+    Cualquiera de estos campos con un valor no-nulo califica el documento.
+    Usado como gate antes de persistir en GCS / BigQuery.
+    """
+    fm = resultado.get("financial_metrics_2025")
+    if not fm or not isinstance(fm, dict):
+        return False
+
+    # Rutas a los KPIs "core" — basta con que uno sea no-nulo
+    _SENTINEL = {"", "null", "n/a", "--", "0", "none"}
+    core_paths = [
+        ["revenue_growth", "value"],
+        ["base_metrics", "revenue", "value"],
+        ["base_metrics", "ebitda", "value"],
+        ["profit_margins", "gross_profit_margin", "value"],
+        ["profit_margins", "ebitda_margin", "value"],
+        ["cash_flow_indicators", "cash_in_bank_end_of_year", "value"],
+        ["cash_flow_indicators", "annual_cash_flow", "value"],
+        ["debt_ratios", "working_capital_debt", "value"],
+        ["sector_metrics", "mrr", "value"],
+        ["sector_metrics", "gmv", "value"],
+        ["sector_metrics", "portfolio_size", "value"],
+        ["sector_metrics", "loss_ratio", "value"],
+    ]
+    for path in core_paths:
+        node = fm
+        for key in path:
+            if not isinstance(node, dict):
+                node = None
+                break
+            node = node.get(key)
+        if node is not None and str(node).strip().lower() not in _SENTINEL:
+            return True
+    return False
+
 # ── Multi-format processing helpers ──────────────────────────────────────────
 
 # Maximum rows rendered per sheet to stay within Gemini's token budget.
@@ -1070,6 +1108,26 @@ Analiza el documento adjunto y responde con el JSON completo. Nada más.
             if not checklist_status["is_complete"]:
                 _missing_kpis = checklist_status["missing_critical_kpis"]
                 print(f"[API] Checklist incompleto ({company_bucket}): faltan {_missing_kpis}")
+
+            # ── Validación de contenido financiero ──────────────────────────────
+            # Si Gemini no extrajo ningún KPI reconocible, el archivo no es un
+            # reporte financiero válido: bloquear toda persistencia y avisar al
+            # frontend con 422 (el tempfile ya se limpia más abajo en el except).
+            if not _is_financial_document(resultado):
+                print(
+                    f"🚫 [API] Documento rechazado — sin KPIs financieros reconocibles. "
+                    f"Hash: {file_hash}, archivo: {file.filename}"
+                )
+                if os.path.exists(temp_path):
+                    os.remove(temp_path)
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "Archivo no reconocido como reporte financiero válido. "
+                        "No se han guardado datos."
+                    ),
+                )
+            # ────────────────────────────────────────────────────────────────────
 
             # 8d. Persist to BigQuery (non-fatal if BQ is down)
             db_result = {"inserted": False, "duplicate": False, "submission_id": None}
