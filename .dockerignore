@@ -37,3 +37,5 @@ scripts/
 deploy/
 README.md
 *.md
+CLAUDE.md
+env.template

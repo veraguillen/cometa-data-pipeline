@@ -37,23 +37,33 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copiar dependencias Python desde el builder
 COPY --from=builder /install /usr/local
 
-# Copiar código fuente
-COPY src/       ./src/
-COPY assets/    ./assets/
+# Usuario no-root por seguridad (creado antes de COPY para --chown)
+RUN useradd --no-create-home --shell /bin/false appuser
+
+# Copiar código fuente con ownership correcto
+COPY --chown=appuser:appuser src/    ./src/
+COPY --chown=appuser:appuser assets/ ./assets/
 
 # Cloud Run exige el puerto 8080
-ENV PORT=8080
+ENV PORT=8080 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
 EXPOSE 8080
 
-# Usuario no-root por seguridad
-RUN useradd --no-create-home --shell /bin/false appuser
+# Health check: Cloud Run probe + load-balancer readiness
+# Interval 30s, 3 retries → instance marked unhealthy after ~90 s of failures.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" \
+    || exit 1
+
 USER appuser
 
-# 2 workers Uvicorn por instancia. Cloud Run escala instancias según demanda.
-# Para PDF chunking (CPU intensivo) la concurrencia por instancia se limita
-# al nivel Cloud Run (--concurrency 10-20).
+# --timeout-keep-alive 120: cubre SSE streams del /api/chat/stream endpoint.
+# --workers 2: seguro para 1 vCPU; Cloud Run escala instancias según demanda.
+# Para PDF chunking (CPU intensivo) la concurrencia se limita al nivel Cloud Run
+# (--concurrency 10-20 recomendado en la consola).
 CMD ["uvicorn", "src.api:app", \
      "--host", "0.0.0.0", \
      "--port", "8080", \
      "--workers", "2", \
-     "--timeout-keep-alive", "75"]
+     "--timeout-keep-alive", "120"]

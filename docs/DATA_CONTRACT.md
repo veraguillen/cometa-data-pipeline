@@ -2,7 +2,7 @@
 
 **Fuente:** `src/core/data_contract.py`
 **Auditado:** 2026-03-16 — sin inferencias, solo código verificado
-**Última actualización:** 2026-03-16 — PDF Chunking, `_ensure_fm_sections`, normalización de unidades
+**Última actualización:** 2026-03-22 — submission_id como clave de trazabilidad, sistema de fidelidad Legacy/Verified
 
 ---
 
@@ -486,3 +486,109 @@ CONFIDENCE_THRESHOLD = 0.85
 - `avg_confidence >= 0.85` → `status = "processed"`
 - `avg_confidence < 0.85`  → `status = "pending_human_review"` + warning en `integrity.warnings`
 - Sin valores de confidence → `avg_confidence = None`, sin cambio de status por este motivo
+
+---
+
+## `submission_id` — Clave de Trazabilidad
+
+El `submission_id` (UUID v4) es el eje central del sistema de auditoría. Se genera en `build_contract()` al inicio de cada procesamiento y se propaga a todas las capas:
+
+```
+Documento subido
+     │
+     ▼
+build_contract()
+     │  genera submission_id = uuid.uuid4()
+     ▼
+┌────────────────────┐    ┌──────────────────────────┐
+│  submissions       │    │  fact_kpi_values          │
+│  submission_id  ◄──┼────┼─ submission_id            │
+│  company_id        │    │  kpi_key                  │
+│  period_id         │    │  numeric_value            │
+│  status            │    │  is_manually_edited       │
+└────────────────────┘    └──────────────────────────┘
+                                     │
+                          ┌──────────▼──────────────┐
+                          │  audit_log               │
+                          │  submission_id           │
+                          │  analyst_user_id         │
+                          │  action                  │
+                          │  changed_at              │
+                          └─────────────────────────┘
+```
+
+### Garantías del submission_id
+
+| Propiedad | Valor |
+|-----------|-------|
+| Formato | UUID v4 (RFC 4122) |
+| Generación | `uuid.uuid4()` — criptográficamente aleatorio |
+| Unicidad | Garantizada — 2¹²² combinaciones posibles |
+| Persistencia | Se escribe en `submissions` y en cada fila de `fact_kpi_values` |
+| Inmutabilidad | Nunca se recalcula ni se reutiliza |
+
+### Deduplicación vs Trazabilidad
+
+| Mecanismo | Campo | Propósito |
+|-----------|-------|-----------|
+| Deduplicación | `file_hash` (SHA-256[:16]) | Evita reprocesar el mismo archivo |
+| Trazabilidad | `submission_id` (UUID v4) | Une documento → KPIs → auditoría |
+
+Ambos coexisten: el mismo archivo físico nunca se reprocesa (Rule 8), pero cada submisión tiene su propio `submission_id` que vincula todos sus artefactos.
+
+---
+
+## Sistema de Fidelidad de Datos — Legacy vs Verified
+
+Cada fila en `fact_kpi_values` tiene un estado de fidelidad determinado por el campo `is_manually_edited`:
+
+| Estado | `is_manually_edited` | Origen | Acción analista |
+|--------|---------------------|--------|-----------------|
+| **Legacy** | `FALSE` | Extracción automática por Gemini | Sin revisión humana |
+| **Verified** | `TRUE` | Confirmado o corregido por analista Cometa | Revisión explícita |
+
+### Transición de estado
+
+```
+Gemini extrae KPI
+     │
+     ▼  is_manually_edited = FALSE
+  [Legacy]
+     │
+     │  Analista revisa y confirma/corrige via PUT /api/kpi-update
+     ▼  is_manually_edited = TRUE
+  [Verified]
+```
+
+La transición es **unidireccional**: un KPI verificado no regresa a Legacy. Si el analista corrige un KPI ya verificado, simplemente actualiza `numeric_value` y mantiene `is_manually_edited = TRUE`.
+
+### Impacto en el Coverage Heatmap
+
+El endpoint `GET /api/analyst/coverage` usa `is_manually_edited` para clasificar la calidad de cobertura por celda empresa × período:
+
+```sql
+COUNTIF(COALESCE(f.is_manually_edited, FALSE) = TRUE)  AS verified_count,
+COUNTIF(COALESCE(f.is_manually_edited, FALSE) = FALSE) AS legacy_count
+```
+
+| `verified_count` | `legacy_count` | Estado heatmap | Color |
+|:---:|:---:|---|---|
+| > 0 | cualquier | **Verified** | Acento del tema (verde/azul) |
+| 0 | > 0 | **Legacy** | Ámbar |
+| 0 | 0 | **Missing** | Rojo pulsante |
+
+### Campo `value_status` (frontend)
+
+En el BentoGrid del analyst dashboard, cada KPI card muestra su estado de fidelidad:
+
+```typescript
+value_status: "verified" | "legacy" | "pending"
+```
+
+Este valor se calcula en el frontend a partir de `is_manually_edited` y `confidence`:
+
+| Condición | `value_status` |
+|-----------|---------------|
+| `is_manually_edited = true` | `"verified"` |
+| `confidence >= 0.85` | `"legacy"` (alta confianza IA) |
+| `confidence < 0.85` | `"pending"` (baja confianza IA) |

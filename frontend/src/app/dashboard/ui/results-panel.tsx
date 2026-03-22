@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@/components/LayoutWrapper";
+import { apiFetch } from "@/services/api-client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 import { parseFinancialValue, getMetricColor, formatRelativeDate, truncateFilename } from "@/lib/financial-utils";
@@ -148,7 +149,7 @@ export default function ResultsPanel({
         
         // Agregar cache-busting para asegurar datos frescos
         const timestamp = Date.now();
-        const response = await fetch(`${API_BASE}/api/results?company_id=${encodeURIComponent(companyId)}&t=${timestamp}`, {
+        const response = await apiFetch(`${API_BASE}/api/results?company_id=${encodeURIComponent(companyId)}&t=${timestamp}`, {
           method: "GET",
           headers: {
             "Cache-Control": "no-cache, no-store, must-revalidate",
@@ -241,12 +242,27 @@ export default function ResultsPanel({
           const grossMarginParsed = parseFinancialValue(metrics.grossMargin);
           const cashInBankParsed = parseFinancialValue(metrics.cashInBank);
           
+          const isLegacy       = result.data?._value_status === "legacy";
+          const fidelityPct    = result.data?._fidelity_pct ?? null;
+
           return (
-            <div 
-              key={result.id} 
+            <div
+              key={result.id}
               className="border border-white/5 rounded-xl p-4 bg-white/5 cursor-pointer transition-all duration-200 hover:bg-white/10 hover:border-white/20 hover:shadow-lg"
               onClick={() => onResultSelect?.(result)}
             >
+              {isLegacy && (
+                <div className="mb-3 px-3 py-2 bg-yellow-500/15 border border-yellow-500/35 rounded-lg text-yellow-300 text-xs flex items-center gap-2">
+                  <span>⚠</span>
+                  <span>
+                    Datos históricos pendientes de verificación manual.
+                    {fidelityPct !== null && (
+                      <> Fidelidad actual: <strong>{fidelityPct}%</strong>.</>
+                    )}
+                  </span>
+                </div>
+              )}
+
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-medium text-white truncate">

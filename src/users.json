@@ -1,0 +1,49 @@
+{
+  "users": [
+    {
+      "id": "ANA-YqUifw",
+      "email": "admin@cometa.com",
+      "password": "$2b$12$N/zMX1.HVnYrV2uG7RG7o.j1xWDCfAPAMONO3enpcUoo3EKRAnesa",
+      "name": "Analista Cometa",
+      "role": "ANALISTA",
+      "company_id": "COMETA_INTERNAL",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "FND-VYZFiL",
+      "email": "founder@solvento.com",
+      "password": "$2b$12$DbDD9Zv99BZiFd0.QAohiOB76Wof/9xRMqJwX/VU2s0pnQ9MtqkxS",
+      "name": "Founder Solvento",
+      "role": "FOUNDER",
+      "company_id": "COMP_SOLVENTO",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "FND-hGkkPd",
+      "email": "vera.guillen27@gmail.com",
+      "password": "$2b$12$3K2Qpz.RL5YMc.J1Rf.sYedsI3rVjPYnJZSf4cHYsZNkJjeBOhaYm",
+      "name": "Test",
+      "role": "FOUNDER",
+      "company_id": "gmail.com",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "FND-VbvCSP",
+      "email": "vera.sierra27@gmail.com",
+      "password": "LOCKED:3b496b10bcf6cb29f0f2678e20f1bb6758da65f1ff2b7fab",
+      "name": "test12",
+      "role": "FOUNDER",
+      "company_id": "gmail.com",
+      "status": "PENDING_INVITE"
+    },
+    {
+      "id": "ANA-RlOIUF",
+      "email": "vera@cometa.vc",
+      "password": "LOCKED:eba65a6e4fced8f7a1d9d0eb081dd883dc924b56b7090755",
+      "name": "test5",
+      "role": "FOUNDER",
+      "company_id": "cometa.vc",
+      "status": "PENDING_INVITE"
+    }
+  ]
+}

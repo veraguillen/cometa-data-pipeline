@@ -91,7 +91,7 @@ export default function FinancialCharts({ selectedResult, allResults }: Financia
                           className="h-full transition-all duration-700"
                           style={{
                             width: `${Math.min(100, Math.max(0, item.revenueGrowth))}%`,
-                            background: "linear-gradient(90deg, #64CAE4 0%, rgba(100,202,228,0) 100%)",
+                            background: "linear-gradient(90deg, var(--cometa-accent) 0%, color-mix(in srgb, var(--cometa-accent) 0%, transparent) 100%)",
                           }}
                         />
                       </div>
@@ -110,7 +110,7 @@ export default function FinancialCharts({ selectedResult, allResults }: Financia
                           style={{
                             width: `${Math.min(100, Math.max(0, Math.abs(item.ebitdaMargin)))}%`,
                             background: item.ebitdaMargin >= 0
-                              ? "linear-gradient(90deg, #64CAE4 0%, rgba(100,202,228,0) 100%)"
+                              ? "linear-gradient(90deg, var(--cometa-accent) 0%, color-mix(in srgb, var(--cometa-accent) 0%, transparent) 100%)"
                               : "linear-gradient(90deg, #ef4444 0%, rgba(239,68,68,0) 100%)",
                           }}
                         />
@@ -154,11 +154,11 @@ export default function FinancialCharts({ selectedResult, allResults }: Financia
                   className="absolute inset-0 rounded-full transition-all duration-1000"
                   style={{
                     border: "1px solid transparent",
-                    borderTopColor: "#64CAE4",
-                    borderRightColor: "#64CAE4",
+                    borderTopColor: "var(--cometa-accent)",
+                    borderRightColor: "var(--cometa-accent)",
                     transform: `rotate(${(marginAnalysis.grossMargin.value / 100) * 360 - 90}deg)`,
                     clipPath: "polygon(50% 50%, 100% 0, 100% 100%, 50% 100%)",
-                    filter: "drop-shadow(0 0 6px rgba(100,202,228,0.5))",
+                    filter: "drop-shadow(0 0 6px color-mix(in srgb, var(--cometa-accent) 50%, transparent))",
                   }}
                 />
               </div>
@@ -185,12 +185,12 @@ export default function FinancialCharts({ selectedResult, allResults }: Financia
                   className="absolute inset-0 rounded-full transition-all duration-1000"
                   style={{
                     border: "1px solid transparent",
-                    borderTopColor: marginAnalysis.ebitdaMargin.value >= 0 ? "#64CAE4" : "#ef4444",
-                    borderRightColor: marginAnalysis.ebitdaMargin.value >= 0 ? "#64CAE4" : "#ef4444",
+                    borderTopColor: marginAnalysis.ebitdaMargin.value >= 0 ? "var(--cometa-accent)" : "#ef4444",
+                    borderRightColor: marginAnalysis.ebitdaMargin.value >= 0 ? "var(--cometa-accent)" : "#ef4444",
                     transform: `rotate(${(Math.abs(marginAnalysis.ebitdaMargin.value) / 100) * 360 - 90}deg)`,
                     clipPath: "polygon(50% 50%, 100% 0, 100% 100%, 50% 100%)",
                     filter: marginAnalysis.ebitdaMargin.value >= 0
-                      ? "drop-shadow(0 0 6px rgba(100,202,228,0.5))"
+                      ? "drop-shadow(0 0 6px color-mix(in srgb, var(--cometa-accent) 50%, transparent))"
                       : "drop-shadow(0 0 6px rgba(239,68,68,0.4))",
                   }}
                 />
@@ -211,11 +211,11 @@ export default function FinancialCharts({ selectedResult, allResults }: Financia
                   className="absolute inset-0 rounded-full transition-all duration-1000"
                   style={{
                     border: "1px solid transparent",
-                    borderTopColor: "#64CAE4",
-                    borderRightColor: "#64CAE4",
+                    borderTopColor: "var(--cometa-accent)",
+                    borderRightColor: "var(--cometa-accent)",
                     transform: `rotate(${(marginAnalysis.netMargin / 100) * 360 - 90}deg)`,
                     clipPath: "polygon(50% 50%, 100% 0, 100% 100%, 50% 100%)",
-                    filter: "drop-shadow(0 0 6px rgba(100,202,228,0.5))",
+                    filter: "drop-shadow(0 0 6px color-mix(in srgb, var(--cometa-accent) 50%, transparent))",
                   }}
                 />
               </div>

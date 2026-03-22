@@ -58,15 +58,15 @@ export default function ConfirmSubmitButton({
       style={
         !disabled
           ? {
-              background: "linear-gradient(135deg, #00237F 0%, #64CAE4 100%)",
-              color:      "white",
-              boxShadow:  "0 0 24px rgba(100,202,228,0.15)",
+              background: "var(--cometa-accent)",
+              color:      "var(--cometa-accent-fg)",
+              boxShadow:  "0 4px 20px color-mix(in srgb, var(--cometa-accent) 25%, transparent)",
             }
           : {
-              background: "rgba(255,255,255,0.04)",
-              color:      "rgba(255,255,255,0.2)",
+              background: "var(--cometa-card-border)",
+              color:      "var(--cometa-fg-muted)",
               cursor:     "not-allowed",
-              opacity:    0.4,
+              opacity:    0.5,
             }
       }
     >
@@ -99,12 +99,12 @@ export default function ConfirmSubmitButton({
             side="top"
             className="max-w-[220px] space-y-1 rounded-xl px-4 py-3 text-xs"
             style={{
-              background: "rgba(10,10,18,0.95)",
-              border:     "1px solid rgba(100,202,228,0.18)",
-              color:      "rgba(255,255,255,0.6)",
+              background: "var(--cometa-card-bg)",
+              border:     "1px solid color-mix(in srgb, var(--cometa-accent) 20%, transparent)",
+              color:      "var(--cometa-fg-muted)",
             }}
           >
-            <p className="font-cometa-regular text-white/70 mb-1.5">
+            <p className="font-cometa-regular mb-1.5" style={{ color: "var(--cometa-fg)" }}>
               KPIs pendientes:
             </p>
             {missingKpis.map((k) => (

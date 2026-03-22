@@ -14,6 +14,7 @@ Rule 8 (Deduplication) is enforced at the DB layer:
 Dataset is configured via env var BIGQUERY_DATASET (default: cometa_vault).
 """
 
+import hashlib
 import json
 import os
 import pathlib
@@ -76,8 +77,7 @@ COMPANY_BUCKET: dict[str, str] = {
     "ivoy":        "ECOM",
     "bewe":        "SAAS",
     "skydropx":    "ECOM",
-    "bitso":       "SAAS",
-    "cabify":      "ECOM",
+    "gaia":        "SAAS",   # Fondo VII — insurtech/sustainability
     # ── Fondo CIII (20 compañías) ─────────────────────────────────────────────
     "simetrik":    "SAAS",
     "guros":       "INSUR",
@@ -89,16 +89,12 @@ COMPANY_BUCKET: dict[str, str] = {
     "kuona":       "SAAS",
     "prometeo":    "OTH",
     "territorium": "SAAS",
-    "m1":          "INSUR",
     "morgana":     "INSUR",
     "duppla":      "LEND",
     "kala":        "OTH",
     "pulsar":      "SAAS",
     "solvento":    "LEND",
     "numia":       "SAAS",
-    "r2":          "LEND",
-    "dapta":       "SAAS",
-    "rintin":      "ECOM",
 }
 
 # ── Portfolio registry ────────────────────────────────────────────────────────
@@ -106,7 +102,14 @@ COMPANY_BUCKET: dict[str, str] = {
 # Key: lowercase company name (no dots/dashes). Value: portfolio metadata.
 
 PORTFOLIO_MAP: dict[str, dict] = {
-    # ── Fondo VII (10 compañías) ───────────────────────────────────────────────
+    # ── Fondo VII — overview (fund-level KPIs, not a startup) ─────────────────
+    "fund_vii_overview": {
+        "portfolio_id":   "VII",
+        "portfolio_name": "Fondo VII",
+        "display_name":   "Fondo VII — Overview",
+        "entity_type":    "FUND_OVERVIEW",
+    },
+    # ── Fondo VII (9 compañías) ────────────────────────────────────────────────
     "conekta":     {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
     "kueski":      {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
     "mpower":      {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
@@ -115,8 +118,7 @@ PORTFOLIO_MAP: dict[str, dict] = {
     "ivoy":        {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
     "bewe":        {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
     "skydropx":    {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
-    "bitso":       {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
-    "cabify":      {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},
+    "gaia":        {"portfolio_id": "VII",  "portfolio_name": "Fondo VII"},  # COMP_GAIA
     # ── Fondo CIII (20 compañías) ─────────────────────────────────────────────
     "simetrik":    {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "guros":       {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
@@ -128,16 +130,12 @@ PORTFOLIO_MAP: dict[str, dict] = {
     "kuona":       {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "prometeo":    {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "territorium": {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
-    "m1":          {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "morgana":     {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "duppla":      {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "kala":        {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "pulsar":      {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "solvento":    {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
     "numia":       {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
-    "r2":          {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
-    "dapta":       {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
-    "rintin":      {"portfolio_id": "CIII", "portfolio_name": "Fondo CIII"},
 }
 
 
@@ -258,6 +256,262 @@ SUBMISSIONS_SCHEMA = [
     bigquery.SchemaField("created_at",         "TIMESTAMP"),
     bigquery.SchemaField("detected_currency",  "STRING"),
     bigquery.SchemaField("portfolio_id",       "STRING"),
+]
+
+UPLOAD_LOGS_SCHEMA = [
+    # ── Recibo digital — audit trail de cada finalize ─────────────────────
+    bigquery.SchemaField("log_id",        "STRING",    mode="REQUIRED"),  # uuid4
+    bigquery.SchemaField("company_id",    "STRING",    mode="REQUIRED"),
+    bigquery.SchemaField("founder_email", "STRING",    mode="REQUIRED"),
+    bigquery.SchemaField("vault_seal",    "STRING",    mode="REQUIRED"),  # SHA-256 hex
+    bigquery.SchemaField("file_hashes",  "STRING"),    # JSON array
+    bigquery.SchemaField("file_count",   "INTEGER"),
+    bigquery.SchemaField("manual_kpis",  "STRING"),    # JSON dict (optional)
+    bigquery.SchemaField("finalized_at", "TIMESTAMP",  mode="REQUIRED"),
+    bigquery.SchemaField("period_id",    "STRING"),    # e.g. "2024" or "P2025Q4"
+]
+
+AI_AUDIT_LOGS_SCHEMA = [
+    # ── Consultas al motor de IA — trail de quién preguntó qué y sobre quién ──
+    bigquery.SchemaField("audit_id",        "STRING",   mode="REQUIRED"),  # uuid4
+    bigquery.SchemaField("user_id",         "STRING",   mode="REQUIRED"),  # ANA-/FND- hybrid ID
+    bigquery.SchemaField("user_name",       "STRING"),                     # display name del JWT
+    bigquery.SchemaField("user_role",       "STRING"),                     # ANALISTA|FOUNDER|SOCIO
+    bigquery.SchemaField("company_id",      "STRING"),                     # empresa consultada
+    bigquery.SchemaField("portfolio_id",    "STRING"),                     # fondo (opcional)
+    bigquery.SchemaField("endpoint",        "STRING"),                     # /api/chat | /api/chat/stream
+    bigquery.SchemaField("question_hash",   "STRING"),                     # SHA-256 — nunca texto plano
+    bigquery.SchemaField("question_len",    "INTEGER"),                    # longitud de la pregunta
+    bigquery.SchemaField("context_rows",    "INTEGER"),                    # filas de BQ en el contexto
+    bigquery.SchemaField("has_legacy_data", "BOOL"),                       # ¿algún KPI sin verificar?
+    bigquery.SchemaField("vault_seal_ref",  "STRING"),                     # último vault seal del company
+    bigquery.SchemaField("queried_at",      "TIMESTAMP", mode="REQUIRED"),
+]
+
+DIM_KPI_METADATA_SCHEMA = [
+    # ── Master KPI dictionary — seed + update via WRITE_TRUNCATE ──────────────
+    bigquery.SchemaField("kpi_key",             "STRING",  mode="REQUIRED"),  # 'mrr', 'cac'
+    bigquery.SchemaField("display_name",        "STRING",  mode="REQUIRED"),  # 'Monthly Recurring Revenue'
+    bigquery.SchemaField("vertical",            "STRING",  mode="REQUIRED"),  # 'GENERAL'|'SAAS'|'FINTECH'|'MARKETPLACE'|'INSURTECH'
+    bigquery.SchemaField("description",         "STRING"),                    # AI-facing explanation
+    bigquery.SchemaField("unit",                "STRING"),                    # 'USD'|'Percentage'|'Number'|'Ratio'
+    bigquery.SchemaField("min_historical_year", "INTEGER"),                   # year data started being tracked formally
+    bigquery.SchemaField("is_required",         "BOOL"),                      # mandatory for the vertical
+    bigquery.SchemaField("example_value",       "STRING"),                    # UI hint, e.g. "$120K"
+    bigquery.SchemaField("updated_at",          "TIMESTAMP"),
+]
+
+# ── KPI seed data — single source of truth for the entire catalogue ────────────
+# vertical values align with UploadFlow.tsx Vertical type:
+#   GENERAL   = applies to every company regardless of model (was "ALL" in DIM_METRIC)
+#   SAAS      = SaaS / subscription software
+#   FINTECH   = Lending, neobanking, payments
+#   MARKETPLACE = eCommerce, logistics platforms
+#   INSURTECH = Insurance technology
+_KPI_METADATA_SEED: list[dict] = [
+    # ── Core / GENERAL ────────────────────────────────────────────────────────
+    {
+        "kpi_key": "revenue", "display_name": "Total Revenue",
+        "vertical": "GENERAL", "unit": "USD", "is_required": True,
+        "example_value": "$2.4M", "min_historical_year": 2020,
+        "description": (
+            "Ingresos totales reconocidos en el período. Métrica fundamental para evaluar tamaño "
+            "y trayectoria de crecimiento. Incluye todas las fuentes de ingresos reconocidos "
+            "según principios contables aplicables. Analizar junto al revenue_growth para "
+            "determinar momentum del negocio."
+        ),
+    },
+    {
+        "kpi_key": "revenue_growth", "display_name": "Revenue Growth YoY",
+        "vertical": "GENERAL", "unit": "Percentage", "is_required": True,
+        "example_value": "45%", "min_historical_year": 2020,
+        "description": (
+            "Tasa de crecimiento porcentual de ingresos año sobre año. Indicador crítico de "
+            "momentum. Valores >100% YoY son señal de hipercrecimiento en etapas tempranas. "
+            "Comparar con benchmarks del sector: SaaS B2B líder ~80-120%, marketplace ~50-80%."
+        ),
+    },
+    {
+        "kpi_key": "gross_profit_margin", "display_name": "Gross Profit Margin",
+        "vertical": "GENERAL", "unit": "Percentage", "is_required": True,
+        "example_value": "68%", "min_historical_year": 2020,
+        "description": (
+            "Ingresos menos COGS como porcentaje de ingresos. Refleja eficiencia del modelo de "
+            "negocio. Referencia: SaaS B2B >70%, marketplace 30-60%, lending varía por modelo. "
+            "Mejora sostenida del margen bruto indica economías de escala."
+        ),
+    },
+    {
+        "kpi_key": "ebitda", "display_name": "EBITDA",
+        "vertical": "GENERAL", "unit": "USD", "is_required": False,
+        "example_value": "-$800K", "min_historical_year": 2020,
+        "description": (
+            "Beneficio operativo antes de intereses, impuestos, depreciación y amortización en "
+            "términos absolutos (USD). Junto con ebitda_margin permite comparar empresas de "
+            "distintos tamaños en el portafolio."
+        ),
+    },
+    {
+        "kpi_key": "ebitda_margin", "display_name": "EBITDA Margin",
+        "vertical": "GENERAL", "unit": "Percentage", "is_required": True,
+        "example_value": "-12%", "min_historical_year": 2020,
+        "description": (
+            "EBITDA como porcentaje de ingresos. Proxy de rentabilidad operativa. EBITDA "
+            "negativo es esperable en startups pre-rentabilidad; la tendencia de mejora "
+            "interanual es el indicador clave. Path to profitability: cuántos años hasta EBITDA=0."
+        ),
+    },
+    {
+        "kpi_key": "cogs", "display_name": "Cost of Goods Sold",
+        "vertical": "GENERAL", "unit": "USD", "is_required": False,
+        "example_value": "$780K", "min_historical_year": 2020,
+        "description": (
+            "Costos directos de producción o entrega del servicio. En SaaS incluye hosting y "
+            "soporte; en marketplace incluye logística o comisiones de transacción. Fundamental "
+            "para calcular el margen bruto real."
+        ),
+    },
+    {
+        "kpi_key": "cash_in_bank_end_of_year", "display_name": "Cash in Bank (EoY)",
+        "vertical": "GENERAL", "unit": "USD", "is_required": True,
+        "example_value": "$1.2M", "min_historical_year": 2020,
+        "description": (
+            "Efectivo disponible al cierre del año fiscal. Combinar con burn rate mensual para "
+            "estimar runway restante. Runway < 12 meses es señal crítica de alerta. "
+            "Indicador primario de salud de tesorería en due diligence."
+        ),
+    },
+    {
+        "kpi_key": "annual_cash_flow", "display_name": "Annual Cash Flow",
+        "vertical": "GENERAL", "unit": "USD", "is_required": False,
+        "example_value": "-$400K", "min_historical_year": 2020,
+        "description": (
+            "Flujo de caja neto generado o consumido en el año (operaciones + inversión + "
+            "financiación). Negativo es normal en fases de inversión agresiva. La tendencia "
+            "de mejora interanual (reducción del burn) es más relevante que el valor puntual."
+        ),
+    },
+    {
+        "kpi_key": "working_capital_debt", "display_name": "Working Capital Debt",
+        "vertical": "GENERAL", "unit": "USD", "is_required": False,
+        "example_value": "$300K", "min_historical_year": 2020,
+        "description": (
+            "Deuda de capital de trabajo: líneas de crédito operativas y deuda a corto plazo. "
+            "Evalúa la estructura de financiación de operaciones diarias y el riesgo de "
+            "liquidez. Alto ratio deuda-ingresos puede indicar dependencia de financiación externa."
+        ),
+    },
+    {
+        "kpi_key": "cac", "display_name": "Customer Acquisition Cost",
+        "vertical": "GENERAL", "unit": "USD", "is_required": False,
+        "example_value": "$380", "min_historical_year": 2021,
+        "description": (
+            "Costo promedio para adquirir un cliente nuevo (marketing + ventas / nuevos clientes). "
+            "Analizar siempre junto al LTV: CAC/LTV < 0.33 es el ratio objetivo para SaaS "
+            "saludable. CAC en ascenso sostenido indica saturación del canal de adquisición."
+        ),
+    },
+    # ── SaaS ──────────────────────────────────────────────────────────────────
+    {
+        "kpi_key": "mrr", "display_name": "Monthly Recurring Revenue",
+        "vertical": "SAAS", "unit": "USD", "is_required": True,
+        "example_value": "$120K", "min_historical_year": 2021,
+        "description": (
+            "Ingresos recurrentes mensuales predecibles de contratos activos. Métrica central "
+            "de SaaS: ARR = MRR × 12. Descomponer en New MRR, Expansion MRR y Churned MRR "
+            "para entender el motor de crecimiento. Target de Cometa: MRR con crecimiento "
+            "MoM consistente >5% en etapa de tracción."
+        ),
+    },
+    {
+        "kpi_key": "churn_rate", "display_name": "Churn Rate",
+        "vertical": "SAAS", "unit": "Percentage", "is_required": True,
+        "example_value": "2.5%", "min_historical_year": 2021,
+        "description": (
+            "Porcentaje de clientes o MRR perdidos en el período. Referencia: churn mensual "
+            "<2% es excelente para SaaS B2B, <5% para B2C. Alto churn erosiona el ARR y "
+            "eleva el CAC efectivo al forzar reemplazo constante de clientes perdidos. "
+            "Correlación inversa con NPS y calidad de onboarding."
+        ),
+    },
+    {
+        "kpi_key": "ltv", "display_name": "Customer Lifetime Value",
+        "vertical": "SAAS", "unit": "USD", "is_required": False,
+        "example_value": "$4,500", "min_historical_year": 2022,
+        "description": (
+            "Valor total esperado de un cliente durante toda su relación con la empresa. "
+            "LTV = ARPU / Churn Rate (mensual). NOTA: Esta es una métrica de implementación "
+            "reciente en Cometa Vault (desde 2022). Si no aparece en datos históricos pre-2022, "
+            "no es una falla de datos sino una expansión del diccionario de métricas."
+        ),
+    },
+    # ── Fintech / Lending ──────────────────────────────────────────────────────
+    {
+        "kpi_key": "portfolio_size", "display_name": "Loan Portfolio Size",
+        "vertical": "FINTECH", "unit": "USD", "is_required": True,
+        "example_value": "$8.5M", "min_historical_year": 2020,
+        "description": (
+            "Cartera de créditos activa (saldo total de préstamos vigentes en el período). "
+            "Indicador del escale del negocio de lending. Analizar junto al NPL ratio para "
+            "evaluar calidad de cartera. Crecimiento de cartera sin deterioro del NPL "
+            "indica underwriting sólido."
+        ),
+    },
+    {
+        "kpi_key": "npl_ratio", "display_name": "Non-Performing Loan Ratio",
+        "vertical": "FINTECH", "unit": "Percentage", "is_required": True,
+        "example_value": "3.2%", "min_historical_year": 2020,
+        "description": (
+            "Porcentaje de la cartera con pagos vencidos >90 días. Referencia: NPL <5% es "
+            "aceptable en lending digital; >10% es señal de alerta sobre underwriting o "
+            "gestión de cobranza. Métrica regulatoria crítica. Aumentos bruscos del NPL "
+            "anticipan deterioro del P&L en 2-3 trimestres."
+        ),
+    },
+    {
+        "kpi_key": "tpv", "display_name": "Total Payment Volume",
+        "vertical": "FINTECH", "unit": "USD", "is_required": False,
+        "example_value": "$42M", "min_historical_year": 2021,
+        "description": (
+            "Volumen total de pagos o transacciones procesados en el período. Para fintechs de "
+            "pagos, el TPV es el indicador de escala equivalente al GMV en marketplaces. "
+            "NOTA: Métrica incorporada al diccionario de Cometa en 2021 para fintechs de pagos."
+        ),
+    },
+    {
+        "kpi_key": "take_rate", "display_name": "Take Rate",
+        "vertical": "FINTECH", "unit": "Percentage", "is_required": False,
+        "example_value": "1.8%", "min_historical_year": 2021,
+        "description": (
+            "Porcentaje del volumen de transacciones que se retiene como revenue (comisión). "
+            "Aplica a fintechs de pagos (sobre TPV) y marketplaces (sobre GMV). "
+            "El take rate refleja el poder de negociación y el valor añadido de la plataforma."
+        ),
+    },
+    # ── Marketplace / eCommerce ───────────────────────────────────────────────
+    {
+        "kpi_key": "gmv", "display_name": "Gross Merchandise Value",
+        "vertical": "MARKETPLACE", "unit": "USD", "is_required": True,
+        "example_value": "$5.1M", "min_historical_year": 2020,
+        "description": (
+            "Valor total de transacciones procesadas por la plataforma antes de descuentos y "
+            "devoluciones. Métrica de volumen, no de revenue real. Revenue = GMV × Take Rate. "
+            "Crecimiento de GMV sin crecimiento equivalente de revenue indica compresión del "
+            "take rate (señal de competencia o subsidio de transacciones)."
+        ),
+    },
+    # ── Insurtech ─────────────────────────────────────────────────────────────
+    {
+        "kpi_key": "loss_ratio", "display_name": "Loss Ratio",
+        "vertical": "INSURTECH", "unit": "Percentage", "is_required": True,
+        "example_value": "58%", "min_historical_year": 2022,
+        "description": (
+            "Proporción de primas recaudadas pagadas como siniestros. Referencia: <60% es "
+            "excelente, 60-80% es operacionalmente sostenible, >100% implica pérdidas técnicas. "
+            "Métrica central del underwriting de riesgo. NOTA: Incorporada al diccionario de "
+            "Cometa en 2022 con la expansión al sector insurtech del portafolio."
+        ),
+    },
 ]
 
 DIM_COMPANY_SCHEMA = [
@@ -448,6 +702,159 @@ def _sync_dim_company(client: bigquery.Client, table_id: str) -> None:
         print(f"⚠️  [BQ] dim_company sync failed (non-fatal): {e}")
 
 
+def _sync_dim_kpi_metadata(client: bigquery.Client, table_id: str) -> None:
+    """
+    Seed dim_kpi_metadata from _KPI_METADATA_SEED via WRITE_TRUNCATE.
+
+    WRITE_TRUNCATE replaces all rows atomically so adding a new KPI to
+    _KPI_METADATA_SEED and restarting the server is the only operation
+    needed to make it available to the API, the UploadFlow, and Gemini.
+
+    Requires only bigquery.dataEditor (same as _sync_dim_company).
+    """
+    now = datetime.now(timezone.utc).isoformat()
+    rows = [{**row, "updated_at": now} for row in _KPI_METADATA_SEED]
+    try:
+        job_config = bigquery.LoadJobConfig(
+            schema=DIM_KPI_METADATA_SCHEMA,
+            write_disposition=bigquery.WriteDisposition.WRITE_TRUNCATE,
+            source_format=bigquery.SourceFormat.NEWLINE_DELIMITED_JSON,
+        )
+        job = client.load_table_from_json(rows, table_id, job_config=job_config)
+        job.result()
+        print(f"✅ [BQ] dim_kpi_metadata seeded: {len(rows)} KPIs via WRITE_TRUNCATE")
+    except Exception as e:
+        print(f"⚠️  [BQ] dim_kpi_metadata seed failed (non-fatal): {e}")
+
+
+def _create_v_data_coverage_view(client: bigquery.Client, ds_ref: str) -> None:
+    """
+    Create (or replace) the v_data_coverage BigQuery view.
+
+    The view crosses dim_company × dim_kpi_metadata × fact_kpi_values to produce
+    a coverage heat-map:  which companies are filling their mandatory KPIs and
+    which ones have gaps.
+
+    Vertical mapping (dim_kpi_metadata.vertical → dim_company.bucket_id):
+      GENERAL   → always included (applies to all)
+      SAAS      → bucket_id = 'SAAS'
+      FINTECH   → bucket_id IN ('LEND', 'FINTECH')
+      MARKETPLACE → bucket_id IN ('ECOM', 'MARKETPLACE')
+      INSURTECH → bucket_id IN ('INSUR', 'INSURTECH')
+    """
+    view_id = f"{ds_ref}.v_data_coverage"
+    sql = f"""
+        SELECT
+            c.company_key,
+            c.portfolio_id,
+            m.kpi_key,
+            m.display_name          AS kpi_display_name,
+            m.vertical              AS kpi_vertical,
+            m.unit                  AS kpi_unit,
+            m.is_required,
+            COUNT(f.id)             AS submissions_count,
+            MAX(s.submitted_at)     AS last_submitted_at,
+            MIN(s.period_id)        AS earliest_period,
+            MAX(s.period_id)        AS latest_period,
+            COUNTIF(COALESCE(f.is_manually_edited, FALSE))  AS verified_count,
+            CASE
+                WHEN COUNT(f.id) = 0                                          THEN 'missing'
+                WHEN COUNTIF(COALESCE(f.is_manually_edited, FALSE)) > 0       THEN 'verified'
+                ELSE 'legacy'
+            END                     AS coverage_status
+        FROM `{ds_ref}.dim_company` c
+        CROSS JOIN `{ds_ref}.dim_kpi_metadata` m
+        LEFT JOIN `{ds_ref}.submissions` s
+            ON LOWER(s.company_id) LIKE CONCAT('%', c.company_key, '%')
+        LEFT JOIN `{ds_ref}.fact_kpi_values` f
+            ON  f.submission_id = s.submission_id
+            AND f.kpi_key       = m.kpi_key
+            AND f.is_valid      = TRUE
+        WHERE
+            m.vertical = 'GENERAL'
+            OR (m.vertical = 'SAAS'        AND c.bucket_id = 'SAAS')
+            OR (m.vertical = 'FINTECH'     AND c.bucket_id IN ('LEND', 'FINTECH'))
+            OR (m.vertical = 'MARKETPLACE' AND c.bucket_id IN ('ECOM', 'MARKETPLACE'))
+            OR (m.vertical = 'INSURTECH'   AND c.bucket_id IN ('INSUR', 'INSURTECH'))
+        GROUP BY
+            c.company_key, c.portfolio_id,
+            m.kpi_key, m.display_name, m.vertical, m.unit, m.is_required
+        ORDER BY
+            c.company_key, m.vertical, m.kpi_key
+    """
+    try:
+        view = bigquery.Table(view_id)
+        view.view_query = sql
+        # CREATE OR REPLACE: delete first if exists, then recreate
+        try:
+            client.delete_table(view_id)
+        except Exception:
+            pass
+        client.create_table(view)
+        print(f"✅ [BQ] View ready: {view_id}")
+    except Exception as e:
+        print(f"⚠️  [BQ] v_data_coverage view creation failed (non-fatal): {e}")
+
+
+def query_kpi_metadata(vertical: str | None = None) -> list[dict]:
+    """
+    Fetch KPI metadata from dim_kpi_metadata.
+
+    Args:
+        vertical: One of 'SAAS', 'FINTECH', 'MARKETPLACE', 'INSURTECH', or None.
+                  When provided, returns GENERAL KPIs plus vertical-specific ones.
+                  When None, returns the full catalogue.
+
+    Returns:
+        List of dicts with keys: kpi_key, display_name, vertical, description,
+        unit, min_historical_year, is_required, example_value.
+    """
+    ds = _dataset_ref()
+    try:
+        client = _get_bq_client()
+        if vertical:
+            sql = f"""
+                SELECT kpi_key, display_name, vertical, description,
+                       unit, min_historical_year, is_required, example_value
+                FROM `{ds}.dim_kpi_metadata`
+                WHERE vertical = 'GENERAL' OR vertical = @vertical
+                ORDER BY is_required DESC, vertical, kpi_key
+            """
+            from google.cloud import bigquery as _bq
+            job = client.query(
+                sql,
+                job_config=_bq.QueryJobConfig(
+                    query_parameters=[
+                        _bq.ScalarQueryParameter("vertical", "STRING", vertical.upper()),
+                    ]
+                ),
+            )
+        else:
+            sql = f"""
+                SELECT kpi_key, display_name, vertical, description,
+                       unit, min_historical_year, is_required, example_value
+                FROM `{ds}.dim_kpi_metadata`
+                ORDER BY vertical, is_required DESC, kpi_key
+            """
+            job = client.query(sql)
+
+        return [dict(r) for r in job.result()]
+    except Exception as e:
+        print(f"⚠️  [BQ] query_kpi_metadata failed, falling back to seed: {e}")
+        # Graceful fallback: serve seed data in-process so startup errors don't break the UploadFlow
+        if vertical:
+            v_upper = vertical.upper()
+            return [
+                {k: v for k, v in row.items() if k != "updated_at"}
+                for row in _KPI_METADATA_SEED
+                if row["vertical"] in ("GENERAL", v_upper)
+            ]
+        return [
+            {k: v for k, v in row.items() if k != "updated_at"}
+            for row in _KPI_METADATA_SEED
+        ]
+
+
 def ensure_schema() -> None:
     """
     Create the BigQuery dataset and all tables if they don't already exist.
@@ -491,6 +898,28 @@ def ensure_schema() -> None:
     # Migrate columns added after initial deployment (idempotent)
     _ensure_audit_columns(client, kpi_ref)
     _ensure_submission_new_columns(client, sub_ref)
+
+    # upload_logs — audit receipts for finalized expedientes
+    logs_ref   = f"{ds_ref}.upload_logs"
+    logs_table = bigquery.Table(logs_ref, schema=UPLOAD_LOGS_SCHEMA)
+    client.create_table(logs_table, exists_ok=True)
+    print(f"✅ [BQ] Table ready: {logs_ref}")
+
+    # ai_audit_logs — trail de cada consulta al motor de IA
+    ai_audit_ref   = f"{ds_ref}.ai_audit_logs"
+    ai_audit_table = bigquery.Table(ai_audit_ref, schema=AI_AUDIT_LOGS_SCHEMA)
+    client.create_table(ai_audit_table, exists_ok=True)
+    print(f"✅ [BQ] Table ready: {ai_audit_ref}")
+
+    # dim_kpi_metadata — master KPI dictionary (seed via WRITE_TRUNCATE)
+    meta_ref   = f"{ds_ref}.dim_kpi_metadata"
+    meta_table = bigquery.Table(meta_ref, schema=DIM_KPI_METADATA_SCHEMA)
+    client.create_table(meta_table, exists_ok=True)
+    print(f"✅ [BQ] Table ready: {meta_ref}")
+    _sync_dim_kpi_metadata(client, meta_ref)
+
+    # v_data_coverage — cross-company KPI coverage heat map (view)
+    _create_v_data_coverage_view(client, ds_ref)
 
 
 # ── Load helper ───────────────────────────────────────────────────────────────
@@ -661,7 +1090,7 @@ def insert_contract(contract: dict) -> dict:
     # ── Insert kpi_rows ───────────────────────────────────────────────────
     if kpi_rows:
         kpi_payload = [
-            {**row, "id": str(uuid.uuid4()), "created_at": now}
+            {**row, "id": str(uuid.uuid4()), "created_at": now, "last_upload_at": now}
             for row in kpi_rows
         ]
         try:
@@ -799,6 +1228,232 @@ def update_kpi_value(
         "is_valid":           is_valid,
         "is_manually_edited": True,
         "original_raw_value": original_raw,
+    }
+
+
+# ── Upload log — recibo digital del expediente finalizado ─────────────────────
+
+def insert_upload_log(
+    company_id:    str,
+    founder_email: str,
+    vault_seal:    str,
+    file_hashes:   list[str],
+    manual_kpis:   dict[str, str] | None = None,
+    period_id:     str = "",
+) -> str:
+    """
+    Insert an audit receipt into upload_logs after a founder finalizes.
+
+    Parameters
+    ----------
+    company_id    : Lowercase company slug or domain.
+    founder_email : Authenticated founder's email from JWT.
+    vault_seal    : 64-char SHA-256 hex from hash_service.generate_vault_seal().
+    file_hashes   : List of file SHA-256 prefixes included in this expediente.
+    manual_kpis   : Optional dict of manually entered KPI key → value pairs.
+    period_id     : Optional period label (e.g. "2024", "P2025Q4").
+
+    Returns
+    -------
+    str — The generated log_id (UUID4).
+
+    Notes
+    -----
+    Never raises — failures are logged and silently swallowed so the Founder
+    UX is never interrupted by an audit write error.
+    """
+    log_id = str(uuid.uuid4())
+    now    = datetime.now(timezone.utc)
+    row    = {
+        "log_id":        log_id,
+        "company_id":    company_id.lower().strip(),
+        "founder_email": founder_email.lower().strip(),
+        "vault_seal":    vault_seal,
+        "file_hashes":   json.dumps(sorted(file_hashes)),
+        "file_count":    len(file_hashes),
+        "manual_kpis":   json.dumps(manual_kpis) if manual_kpis else None,
+        "finalized_at":  now.isoformat(),
+        "period_id":     period_id or now.strftime("%Y"),
+    }
+    try:
+        client   = _get_bq_client()
+        ds_ref   = _dataset_ref()
+        table_id = f"{ds_ref}.upload_logs"
+        _load_rows(client, table_id, [row], UPLOAD_LOGS_SCHEMA)
+        print(f"✅ [BQ/upload_logs] Recibo guardado: {log_id} | {company_id}")
+    except Exception as err:
+        print(f"⚠️  [BQ/upload_logs] Insert failed (non-fatal): {err}")
+    return log_id
+
+
+# ── AI Audit Log — trail de cada consulta al motor de IA ─────────────────────
+
+def insert_ai_audit_log(
+    user_id:         str,
+    user_name:       str,
+    user_role:       str,
+    question:        str,
+    context_rows:    int,
+    has_legacy_data: bool,
+    endpoint:        str,
+    company_id:      str       = "",
+    portfolio_id:    str       = "",
+    vault_seal_ref:  str       = "",
+) -> str:
+    """
+    Insert one row into ai_audit_logs after every AI chat query.
+
+    The raw question is NEVER stored — only its SHA-256 hash and length.
+    This satisfies data minimisation requirements while preserving audit
+    value (same question = same hash lets analysts detect repeated queries).
+
+    Parameters
+    ----------
+    user_id         : Hybrid ID from JWT (ANA-XXXXXX / FND-XXXXXX).
+    user_name       : Display name from JWT `name` claim.
+    user_role       : Role from JWT (ANALISTA | FOUNDER | SOCIO).
+    question        : Raw question — hashed here, never persisted as text.
+    context_rows    : Number of BQ rows included in the Gemini context.
+    has_legacy_data : True when any context row lacks manual verification.
+    endpoint        : "/api/chat" or "/api/chat/stream".
+    company_id      : Company slug queried (empty for portfolio-wide queries).
+    portfolio_id    : Portfolio filter applied (empty if none).
+    vault_seal_ref  : Latest vault seal for this company (from upload_logs).
+
+    Returns
+    -------
+    str — Generated audit_id (UUID4). Empty string on failure (non-fatal).
+    """
+    audit_id     = str(uuid.uuid4())
+    question_hash = hashlib.sha256(question.encode("utf-8")).hexdigest()
+    row = {
+        "audit_id":        audit_id,
+        "user_id":         user_id or "unknown",
+        "user_name":       user_name or "",
+        "user_role":       user_role or "",
+        "company_id":      company_id or "",
+        "portfolio_id":    portfolio_id or "",
+        "endpoint":        endpoint,
+        "question_hash":   question_hash,
+        "question_len":    len(question),
+        "context_rows":    context_rows,
+        "has_legacy_data": has_legacy_data,
+        "vault_seal_ref":  vault_seal_ref or "",
+        "queried_at":      datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        client   = _get_bq_client()
+        ds_ref   = _dataset_ref()
+        table_id = f"{ds_ref}.ai_audit_logs"
+        _load_rows(client, table_id, [row], AI_AUDIT_LOGS_SCHEMA)
+        print(
+            f"🔍 [BQ/ai_audit] {user_id} consultó '{company_id or portfolio_id}' "
+            f"({context_rows} rows, legacy={has_legacy_data})"
+        )
+    except Exception as err:
+        print(f"⚠️  [BQ/ai_audit] Insert failed (non-fatal): {err}")
+        return ""
+    return audit_id
+
+
+# ── Coverage heatmap query ────────────────────────────────────────────────────
+
+def query_coverage() -> dict:
+    """
+    Returns per-company × per-period KPI coverage matrix for the heatmap.
+
+    Queries the last 8 quarters of submissions (is_latest_version = TRUE) and
+    groups KPI counts by (company_id, period_id).
+
+    Returns
+    -------
+    {
+        "companies": [{"key": str, "display": str, "portfolio_id": str}],
+        "periods":   [str],          # canonical PYYYYQxMyy, sorted chronologically
+        "cells":     [
+            {
+                "company":        str,
+                "period":         str,
+                "status":         "verified" | "legacy" | "missing",
+                "kpi_count":      int,
+                "verified_count": int,
+                "legacy_count":   int,
+            }
+        ]
+    }
+    """
+    client = _get_bq_client()
+    ds     = _dataset_ref()
+
+    sql = f"""
+        SELECT
+            LOWER(s.company_id)                                                 AS company,
+            s.period_id                                                          AS period,
+            COUNT(DISTINCT f.kpi_key)                                            AS kpi_count,
+            COUNTIF(COALESCE(f.is_manually_edited, FALSE) AND f.is_valid = TRUE) AS verified_count,
+            COUNTIF(
+                NOT COALESCE(f.is_manually_edited, FALSE) AND f.is_valid = TRUE
+            )                                                                    AS legacy_count
+        FROM `{ds}.submissions` s
+        JOIN `{ds}.fact_kpi_values` f
+            ON  f.submission_id = s.submission_id
+            AND f.is_valid = TRUE
+        WHERE
+            s.period_id IS NOT NULL
+            AND s.period_id != ''
+            AND COALESCE(s.is_latest_version, TRUE) = TRUE
+        GROUP BY 1, 2
+        ORDER BY 1, 2
+    """
+
+    try:
+        rows = list(client.query(sql).result())
+    except Exception:
+        return {"companies": [], "periods": [], "cells": []}
+
+    companies_seen: dict[str, str] = {}   # key → portfolio_id
+    periods_seen:   set[str]       = set()
+    cells: list[dict] = []
+
+    for row in rows:
+        company   = (row.company or "unknown").strip()
+        period    = (row.period  or "").strip()
+        if not period or not company:
+            continue
+
+        if company not in companies_seen:
+            companies_seen[company] = lookup_portfolio(company)
+        periods_seen.add(period)
+
+        verified  = int(row.verified_count or 0)
+        legacy    = int(row.legacy_count   or 0)
+        kpi_count = int(row.kpi_count      or 0)
+        status    = (
+            "verified" if verified > 0 else
+            "legacy"   if legacy   > 0 else
+            "missing"
+        )
+
+        cells.append({
+            "company":        company,
+            "period":         period,
+            "status":         status,
+            "kpi_count":      kpi_count,
+            "verified_count": verified,
+            "legacy_count":   legacy,
+        })
+
+    # PYYYYQxMyy sorts correctly as a plain string
+    sorted_periods   = sorted(periods_seen)
+    sorted_companies = [
+        {"key": k, "display": k, "portfolio_id": v}
+        for k, v in sorted(companies_seen.items())
+    ]
+
+    return {
+        "companies": sorted_companies,
+        "periods":   sorted_periods,
+        "cells":     cells,
     }
 
 

@@ -8,9 +8,16 @@ client_secret*.json
 *.key
 
 # ─── Data (confidential financial documents & processed outputs) ───────────────
-data/raw/
-data/staging/
+data/
 temp/
+histo/
+audit/
+base/
+
+# ─── Temporary & backup files ──────────────────────────────────────────────────
+*.bak
+*.tmp
+*.json.tmp
 
 # ─── Python ───────────────────────────────────────────────────────────────────
 venv/
@@ -49,3 +56,9 @@ yarn-error.log*
 Thumbs.db
 .vscode/settings.json
 .claude/
+
+# ─── SQL artifacts & generated scripts ────────────────────────────────────────
+ejecutar_sql.py
+god_mode_fix.py
+fix_submission_id.py
+test_production_email.py
