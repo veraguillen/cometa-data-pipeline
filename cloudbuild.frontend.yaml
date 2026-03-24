@@ -24,8 +24,6 @@ steps:
     args:
       - build
       - --tag
-      - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}
-      - --tag
       - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest
       - --build-arg
       - NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}
@@ -37,7 +35,7 @@ steps:
   - name: gcr.io/cloud-builders/docker
     id: push-frontend
     waitFor: [build-frontend]
-    args: [push, --all-tags, "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend"]
+    args: [push, "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest"]
 
   # ── 3. Deploy a Cloud Run ─────────────────────────────────────────────────────
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk
@@ -48,7 +46,7 @@ steps:
       - run
       - deploy
       - ${_FRONTEND_SERVICE}
-      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
@@ -61,4 +59,4 @@ steps:
       - --set-env-vars=NEXT_PUBLIC_API_URL=${_NEXT_PUBLIC_API_URL}
 
 images:
-  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:${SHORT_SHA}
+  - ${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/frontend:latest
