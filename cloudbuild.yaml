@@ -90,7 +90,7 @@ steps:
       - --service-account=${_SA_EMAIL}
       - --allow-unauthenticated
       - --port=8080
-      - --cpu=2
+      - --cpu=1
       - --memory=2Gi
       - --min-instances=0
       - --max-instances=10
