@@ -143,32 +143,12 @@ async def _startup():
         print(f"⚠️  [Startup] BigQuery schema bootstrap falló (non-fatal): {e}")
     print("✅ [Startup] Servidor listo para recibir archivos en :8000")
 
-cors_origins_raw = os.getenv(
-    "CORS_ORIGINS",
-    json.dumps([
-        # ── Production ────────────────────────────────────────────────────────
-        "https://cometa-vault-frontend-92572839783.us-central1.run.app",
-        # ── Local development ─────────────────────────────────────────────────
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://localhost:3002",
-        "http://localhost:3003",
-        "http://localhost:8000",
-    ]),
-)
-try:
-    cors_origins = json.loads(cors_origins_raw)
-    if not isinstance(cors_origins, list):
-        cors_origins = ["http://localhost:3000"]
-except Exception:
-    cors_origins = ["http://localhost:3000"]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "founder-email", "company-id"],
+    allow_origins=["*"],
+    allow_credentials=False,   # False obligatorio con allow_origins=["*"] (CORS spec)
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # ═══════════════════════════════════════════════════════════════════════════════
