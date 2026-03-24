@@ -116,9 +116,9 @@ export default function KPICard({
       color:      "#c084fc",
       border:     "1px solid color-mix(in srgb, #a855f7 22%, transparent)",
     } : localSource === "manual" ? {
-      background: "color-mix(in srgb, #f59e0b 12%, transparent)",
-      color:      "#fbbf24",
-      border:     "1px solid color-mix(in srgb, #f59e0b 22%, transparent)",
+      background: "color-mix(in srgb, var(--cometa-accent) 12%, transparent)",
+      color:      "var(--cometa-accent)",
+      border:     "1px solid color-mix(in srgb, var(--cometa-accent) 22%, transparent)",
     } : {
       background: "color-mix(in srgb, var(--cometa-accent) 10%, transparent)",
       color:      "var(--cometa-accent)",

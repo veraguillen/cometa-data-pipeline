@@ -145,10 +145,15 @@ export default function AnalystSidebar({
                   onChange={(e) => onFundSelect?.(e.target.value)}
                   className="w-full rounded-md px-3 py-2 text-sm outline-none"
                   style={{
-                    background:  "color-mix(in srgb, var(--cometa-fg) 5%, transparent)",
-                    border:      "1px solid var(--cometa-card-border)",
-                    color:       "var(--cometa-fg)",
-                    appearance:  "none",
+                    background: selectedFund
+                      ? "var(--cometa-accent)"
+                      : "color-mix(in srgb, var(--cometa-fg) 5%, transparent)",
+                    border:     selectedFund
+                      ? "1px solid var(--cometa-accent)"
+                      : "1px solid var(--cometa-card-border)",
+                    color:      selectedFund ? "var(--cometa-accent-fg)" : "var(--cometa-fg)",
+                    appearance: "none",
+                    fontWeight: selectedFund ? 500 : 400,
                   }}
                 >
                   <option value="" style={{ background: "var(--cometa-bg)" }}>
@@ -205,9 +210,9 @@ export default function AnalystSidebar({
                     // 2. hasData  — full opacity, bright text (iluminado)
                     // 3. no data  — dim / grayscale / not-allowed (opaco)
                     const buttonStyle: React.CSSProperties = active ? {
-                      background: "color-mix(in srgb, var(--cometa-accent) 10%, transparent)",
-                      color:      "var(--cometa-accent)",
-                      border:     "1px solid color-mix(in srgb, var(--cometa-accent) 20%, transparent)",
+                      background: "var(--cometa-accent)",
+                      color:      "var(--cometa-accent-fg)",
+                      border:     "1px solid var(--cometa-accent)",
                     } : hasData ? isOvw ? {
                       color:      "var(--cometa-fg)",
                       border:     "1px solid color-mix(in srgb, var(--cometa-fg-muted) 15%, transparent)",
@@ -322,9 +327,9 @@ export default function AnalystSidebar({
                               <span
                                 className="shrink-0 rounded-full px-1.5 py-0.5 text-[8px] uppercase tracking-widest mt-0.5"
                                 style={isPending ? {
-                                  background: "color-mix(in srgb, #fbbf24 10%, transparent)",
-                                  color:      "#fbbf24",
-                                  border:     "1px solid color-mix(in srgb, #fbbf24 20%, transparent)",
+                                  background: "color-mix(in srgb, var(--cometa-accent) 10%, transparent)",
+                                  color:      "var(--cometa-accent)",
+                                  border:     "1px solid color-mix(in srgb, var(--cometa-accent) 20%, transparent)",
                                 } : {
                                   background: "color-mix(in srgb, #34d399 10%, transparent)",
                                   color:      "#34d399",
@@ -350,14 +355,14 @@ export default function AnalystSidebar({
                 className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-[12px]
                            transition-opacity hover:opacity-80"
                 style={{
-                  color:      "#fbbf24",
-                  border:     "1px solid color-mix(in srgb, #fbbf24 22%, transparent)",
-                  fontWeight: 400,
-                  background: "color-mix(in srgb, #fbbf24 6%, transparent)",
+                  color:      "var(--cometa-accent-fg)",
+                  border:     "1px solid var(--cometa-accent)",
+                  fontWeight: 500,
+                  background: "var(--cometa-accent)",
                 }}
               >
                 <UserPlus size={12} className="shrink-0" />
-                Invitar Founder
+                Invitar
               </button>
             </div>
           </motion.div>

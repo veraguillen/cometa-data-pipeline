@@ -1164,13 +1164,6 @@ def update_kpi_value(
     ])
     rows = list(client.query(check_sql, job_config=check_cfg).result())
 
-    if not rows:
-        raise ValueError(
-            f"KPI row not found — submission_id={submission_id}, kpi_key={kpi_key}"
-        )
-
-    original_raw: Optional[str] = rows[0]["raw_value"]
-
     # ── 2. Parse the new value (Rule 4) ───────────────────────────────────
     raw_to_parse  = new_raw_value.strip() if new_raw_value else None
     numeric_value, unit = parse_numeric(raw_to_parse)
@@ -1182,7 +1175,52 @@ def update_kpi_value(
             "stored with is_valid=False"
         )
 
-    # ── 3. DML UPDATE ─────────────────────────────────────────────────────
+    if not rows:
+        # ── 3a. INSERT — row does not exist yet (analyst adding a new KPI) ─
+        import uuid as _uuid
+        new_id = str(_uuid.uuid4())
+        insert_sql = f"""
+            INSERT INTO `{kpi_table_id}`
+                (id, submission_id, kpi_key, raw_value, numeric_value, unit,
+                 is_valid, is_manually_edited, edited_at, created_at,
+                 source_description)
+            VALUES
+                (@id, @submission_id, @kpi_key, @new_raw, @numeric_value, @unit,
+                 @is_valid, TRUE, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP(),
+                 'analyst_manual')
+        """
+        insert_cfg = bigquery.QueryJobConfig(query_parameters=[
+            bigquery.ScalarQueryParameter("id",            "STRING",  new_id),
+            bigquery.ScalarQueryParameter("submission_id", "STRING",  submission_id),
+            bigquery.ScalarQueryParameter("kpi_key",       "STRING",  kpi_key),
+            bigquery.ScalarQueryParameter("new_raw",       "STRING",  new_raw_value),
+            bigquery.ScalarQueryParameter("numeric_value", "FLOAT64", numeric_value),
+            bigquery.ScalarQueryParameter("unit",          "STRING",  unit),
+            bigquery.ScalarQueryParameter("is_valid",      "BOOL",    is_valid),
+        ])
+        job = client.query(insert_sql, job_config=insert_cfg)
+        job.result()
+        if job.errors:
+            raise RuntimeError(f"[BQ] KPI insert DML errors: {job.errors}")
+
+        print(
+            f"✅ [BQ] KPI inserted (new) — submission:{submission_id} | "
+            f"kpi:{kpi_key} | '{new_raw_value}' | valid={is_valid}"
+        )
+        return {
+            "submission_id":      submission_id,
+            "kpi_key":            kpi_key,
+            "raw_value":          new_raw_value,
+            "numeric_value":      numeric_value,
+            "unit":               unit,
+            "is_valid":           is_valid,
+            "is_manually_edited": True,
+            "original_raw_value": None,
+        }
+
+    original_raw: Optional[str] = rows[0]["raw_value"]
+
+    # ── 3b. DML UPDATE — row exists, overwrite with audit trail ───────────
     # numeric_value may be NULL — BigQuery accepts None for nullable FLOAT64
     # parameters via the Python client.
     update_sql = f"""
@@ -1358,12 +1396,17 @@ def insert_ai_audit_log(
 
 # ── Coverage heatmap query ────────────────────────────────────────────────────
 
-def query_coverage() -> dict:
+def query_coverage(portfolio_id: Optional[str] = None) -> dict:
     """
     Returns per-company × per-period KPI coverage matrix for the heatmap.
 
     Queries the last 8 quarters of submissions (is_latest_version = TRUE) and
     groups KPI counts by (company_id, period_id).
+
+    Parameters
+    ----------
+    portfolio_id : str | None
+        When provided, restricts results to submissions belonging to that fund.
 
     Returns
     -------
@@ -1385,29 +1428,42 @@ def query_coverage() -> dict:
     client = _get_bq_client()
     ds     = _dataset_ref()
 
+    portfolio_filter = (
+        "AND LOWER(s.portfolio_id) = LOWER(@portfolio_id)"
+        if portfolio_id else ""
+    )
+
     sql = f"""
         SELECT
-            LOWER(s.company_id)                                                 AS company,
-            s.period_id                                                          AS period,
-            COUNT(DISTINCT f.kpi_key)                                            AS kpi_count,
-            COUNTIF(COALESCE(f.is_manually_edited, FALSE) AND f.is_valid = TRUE) AS verified_count,
+            LOWER(s.company_id)                                                    AS company,
+            -- Use period_id when available; fall back to the upload year so
+            -- submissions without an extracted period still appear in the heatmap.
+            COALESCE(
+                NULLIF(TRIM(s.period_id), ''),
+                CONCAT('P', FORMAT_TIMESTAMP('%Y', s.submitted_at))
+            )                                                                       AS period,
+            COUNT(DISTINCT f.kpi_key)                                               AS kpi_count,
+            COUNTIF(COALESCE(f.is_manually_edited, FALSE) AND f.is_valid = TRUE)    AS verified_count,
             COUNTIF(
                 NOT COALESCE(f.is_manually_edited, FALSE) AND f.is_valid = TRUE
-            )                                                                    AS legacy_count
+            )                                                                        AS legacy_count
         FROM `{ds}.submissions` s
         JOIN `{ds}.fact_kpi_values` f
             ON  f.submission_id = s.submission_id
             AND f.is_valid = TRUE
         WHERE
-            s.period_id IS NOT NULL
-            AND s.period_id != ''
-            AND COALESCE(s.is_latest_version, TRUE) = TRUE
+            COALESCE(s.is_latest_version, TRUE) = TRUE
+            {portfolio_filter}
         GROUP BY 1, 2
         ORDER BY 1, 2
     """
 
+    job_cfg = bigquery.QueryJobConfig(query_parameters=[
+        bigquery.ScalarQueryParameter("portfolio_id", "STRING", portfolio_id or ""),
+    ]) if portfolio_id else None
+
     try:
-        rows = list(client.query(sql).result())
+        rows = list(client.query(sql, job_config=job_cfg).result())
     except Exception:
         return {"companies": [], "periods": [], "cells": []}
 
@@ -1445,8 +1501,13 @@ def query_coverage() -> dict:
 
     # PYYYYQxMyy sorts correctly as a plain string
     sorted_periods   = sorted(periods_seen)
+    def _display(key: str) -> str:
+        """'acme.com' → 'acme' · 'my-startup.io' → 'my-startup'"""
+        name = key.split(".")[0] if "." in key else key
+        return name.replace("-", " ").replace("_", " ").title()
+
     sorted_companies = [
-        {"key": k, "display": k, "portfolio_id": v}
+        {"key": k, "display": _display(k), "portfolio_id": v}
         for k, v in sorted(companies_seen.items())
     ]
 

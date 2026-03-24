@@ -17,7 +17,7 @@
  *        [exact Resend/SMTP error] (email_sent: false)
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   X,
@@ -100,6 +100,13 @@ function StatusRow({ icon, label, active, done, error }: StatusRowProps) {
   );
 }
 
+// ── Internal domain detection (mirrors login/page.tsx) ───────────────────────
+const INTERNAL_DOMAINS = ["@cometa.vc", "@cometa.fund", "@cometavc.com"];
+
+function isInternalEmail(email: string): boolean {
+  return INTERNAL_DOMAINS.some((d) => email.toLowerCase().endsWith(d));
+}
+
 // ── DNS / domain error detection ──────────────────────────────────────────────
 
 const DNS_KEYWORDS = [
@@ -120,6 +127,15 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
   const [companyName, setCompanyName] = useState("");
   const [step,        setStep]        = useState<Step>("idle");
   const [emailError,  setEmailError]  = useState("");
+
+  const isInternal   = useMemo(() => isInternalEmail(email), [email]);
+  const isValidEmail = email.includes("@") && email.includes(".");
+
+  // Auto-fill company for internal emails
+  useEffect(() => {
+    if (isInternal) setCompanyName("Cometa");
+    else if (companyName === "Cometa") setCompanyName("");
+  }, [isInternal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-close 3 s after success
   useEffect(() => {
@@ -226,15 +242,15 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
               <div
                 className="flex h-8 w-8 items-center justify-center rounded-lg"
                 style={{
-                  background: "color-mix(in srgb, #fbbf24 10%, transparent)",
-                  border:     "1px solid color-mix(in srgb, #fbbf24 22%, transparent)",
+                  background: "color-mix(in srgb, var(--cometa-accent) 10%, transparent)",
+                  border:     "1px solid color-mix(in srgb, var(--cometa-accent) 22%, transparent)",
                 }}
               >
-                <UserPlus size={14} style={{ color: "#fbbf24" }} />
+                <UserPlus size={14} style={{ color: "var(--cometa-accent)" }} />
               </div>
               <div>
                 <p className="text-[13px]" style={{ color: "var(--cometa-fg)", fontWeight: 400 }}>
-                  Invitar Founder
+                  Invitar usuario
                 </p>
                 <p className="text-[10px]" style={{ color: "var(--cometa-fg-muted)" }}>
                   Genera acceso seguro a la Bóveda Digital
@@ -268,7 +284,7 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
                         className="block text-[10px] uppercase tracking-widest mb-1.5"
                         style={{ color: "var(--cometa-fg-muted)" }}
                       >
-                        Email del Founder
+                        Email
                       </label>
                       <input
                         type="email"
@@ -280,7 +296,7 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
                             setEmailError("");
                           }
                         }}
-                        placeholder="founder@startup.com"
+                        placeholder="usuario@empresa.com"
                         className="w-full rounded-lg px-3 py-2.5 text-[13px] outline-none"
                         style={{
                           background:  "color-mix(in srgb, var(--cometa-fg) 5%, transparent)",
@@ -290,10 +306,15 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
                         }}
                         onKeyDown={(e) => { if (e.key === "Enter") handleInvite(); }}
                       />
+                      {isValidEmail && (
+                        <p className="mt-1 text-[10px] pl-0.5" style={{ color: "var(--cometa-fg-muted)" }}>
+                          {isInternal ? "→ Acceso Analista Cometa (ANA-)" : "→ Acceso Founder (FND-)"}
+                        </p>
+                      )}
                     </div>
 
-                    {/* Company */}
-                    <div>
+                    {/* Company — hidden for internal (Cometa) emails */}
+                    <div style={{ display: isInternal ? "none" : undefined }}>
                       <label
                         className="block text-[10px] uppercase tracking-widest mb-1.5"
                         style={{ color: "var(--cometa-fg-muted)" }}
@@ -446,9 +467,9 @@ export default function InviteFounder({ open, onClose }: InviteFounderProps) {
                     className="flex items-center gap-2 rounded-lg px-5 py-2 text-[12px]
                                transition-opacity hover:opacity-80 disabled:opacity-35"
                     style={{
-                      background: "color-mix(in srgb, #fbbf24 14%, transparent)",
-                      border:     "1px solid color-mix(in srgb, #fbbf24 28%, transparent)",
-                      color:      "#fbbf24",
+                      background: "color-mix(in srgb, var(--cometa-accent) 14%, transparent)",
+                      border:     "1px solid color-mix(in srgb, var(--cometa-accent) 35%, transparent)",
+                      color:      "var(--cometa-accent)",
                       fontWeight: 400,
                     }}
                   >

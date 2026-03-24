@@ -46,13 +46,9 @@ export default function PeriodFilterBar({
               className="px-2.5 py-1 rounded-md text-[10px] transition-all duration-150"
               style={{
                 fontWeight:  active ? 500 : 400,
-                color:       active ? "var(--cometa-accent)" : "var(--cometa-fg-muted)",
-                background:  active
-                  ? "color-mix(in srgb, var(--cometa-accent) 12%, transparent)"
-                  : "transparent",
-                border: `1px solid ${active
-                  ? "color-mix(in srgb, var(--cometa-accent) 25%, transparent)"
-                  : "transparent"}`,
+                color:       active ? "var(--cometa-accent-fg)" : "var(--cometa-fg-muted)",
+                background:  active ? "var(--cometa-accent)" : "transparent",
+                border:      `1px solid ${active ? "var(--cometa-accent)" : "transparent"}`,
               }}
             >
               {y}
@@ -81,13 +77,9 @@ export default function PeriodFilterBar({
                 className="px-2.5 py-1 rounded-md text-[10px] transition-all duration-150"
                 style={{
                   fontWeight:  active ? 500 : 400,
-                  color:       active ? "var(--cometa-accent)" : "var(--cometa-fg-muted)",
-                  background:  active
-                    ? "color-mix(in srgb, var(--cometa-accent) 12%, transparent)"
-                    : "transparent",
-                  border: `1px solid ${active
-                    ? "color-mix(in srgb, var(--cometa-accent) 25%, transparent)"
-                    : "transparent"}`,
+                  color:       active ? "var(--cometa-accent-fg)" : "var(--cometa-fg-muted)",
+                  background:  active ? "var(--cometa-accent)" : "transparent",
+                  border:      `1px solid ${active ? "var(--cometa-accent)" : "transparent"}`,
                 }}
               >
                 {label}

@@ -230,8 +230,8 @@ body {
   --cometa-fg-muted:      rgba(0,0,0,0.52);
   --cometa-card-bg:       rgba(255,255,255,0.88);
   --cometa-card-border:   rgba(100,116,139,0.18);
-  --cometa-accent:        #ECE5BC;
-  --cometa-accent-fg:     #000000;
+  --cometa-accent:        #1E3A5F;
+  --cometa-accent-fg:     #FFFFFF;
   --cometa-dark-blue:     #5A6E82;
 }
 [data-theme="slate"] ::-webkit-scrollbar-thumb { background: rgba(236,229,188,0.6); }

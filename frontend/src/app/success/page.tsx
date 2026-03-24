@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter, useSearchParams } from "next/navigation";
 import { clearSession } from "@/services/api-client";
 import ResetTheme from "@/components/ResetTheme";
-import { CheckCircle2, Shield, Copy, Check } from "lucide-react";
+import { CheckCircle2, Shield, Copy, Check, LogOut } from "lucide-react";
 
 // ── Confetti particle ────────────────────────────────────────────────────────
-const CONFETTI_COLORS = ["#00A86B", "#3EB489", "#FFFFFF", "#D1FAE5", "#6EE7B7"];
+const CONFETTI_COLORS = ["#64CAE4", "#00237F", "#FFFFFF", "#A8E6F0", "#34d399"];
 
 interface Particle {
   id:    number;
@@ -67,36 +67,45 @@ function Confetti() {
   );
 }
 
-// ── Animated comet brand symbol ──────────────────────────────────────────────
-function CometSymbol({ size = 56 }: { size?: number }) {
+// ── Giant animated checkmark — hero del éxito ────────────────────────────────
+function GiantCheckmark() {
   return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none"
-         xmlns="http://www.w3.org/2000/svg" aria-hidden>
-      <motion.circle cx="22" cy="10" r="4.5"
-        fill="var(--cometa-accent)" opacity={0.95}
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 0.95 }}
-        transition={{ type: "spring", stiffness: 380, damping: 20, delay: 0.1 }}
-      />
-      <motion.line x1="19" y1="13" x2="4" y2="28"
-        stroke="var(--cometa-accent)" strokeWidth="2" strokeLinecap="round" opacity={0.7}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 0.7 }}
-        transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
-      />
-      <motion.line x1="18" y1="14" x2="5" y2="26"
-        stroke="var(--cometa-accent)" strokeWidth="1.2" strokeLinecap="round" opacity={0.35}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 0.35 }}
-        transition={{ duration: 0.45, delay: 0.38, ease: "easeOut" }}
-      />
-      <motion.line x1="17" y1="13" x2="6" y2="24"
-        stroke="var(--cometa-accent)" strokeWidth="0.7" strokeLinecap="round" opacity={0.15}
-        initial={{ pathLength: 0, opacity: 0 }}
-        animate={{ pathLength: 1, opacity: 0.15 }}
-        transition={{ duration: 0.4, delay: 0.44, ease: "easeOut" }}
-      />
-    </svg>
+    <motion.div
+      initial={{ scale: 0.5, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 240, damping: 20, delay: 0.05 }}
+      className="relative flex items-center justify-center"
+    >
+      <svg width="140" height="140" viewBox="0 0 140 140" fill="none" aria-hidden>
+        {/* Outer filled circle */}
+        <motion.circle
+          cx="70" cy="70" r="62"
+          stroke="var(--cometa-accent)" strokeWidth="2"
+          fill="rgba(100,202,228,0.06)"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.65, delay: 0.1, ease: "easeOut" }}
+        />
+        {/* Subtle inner glow ring */}
+        <motion.circle
+          cx="70" cy="70" r="50"
+          stroke="var(--cometa-accent)" strokeWidth="1"
+          fill="none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 0.18 }}
+          transition={{ duration: 0.4, delay: 0.45 }}
+        />
+        {/* Checkmark — white for contrast on dark bg */}
+        <motion.path
+          d="M42 71 L61 90 L98 50"
+          stroke="#FFFFFF" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"
+          fill="none"
+          initial={{ pathLength: 0, opacity: 0 }}
+          animate={{ pathLength: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.55, ease: "easeOut" }}
+        />
+      </svg>
+    </motion.div>
   );
 }
 
@@ -111,19 +120,19 @@ const CHECKLIST_ITEMS = [
 function ChecklistRow({ label, delay }: { label: string; delay: number }) {
   return (
     <motion.div
-      className="flex items-center gap-3"
-      initial={{ opacity: 0, x: -12 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.4, delay, ease: "easeOut" }}
+      className="flex items-center justify-center gap-2.5"
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: "easeOut" }}
     >
       <motion.div
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
-        transition={{ type: "spring", stiffness: 500, damping: 28, delay: delay + 0.05 }}
+        transition={{ type: "spring", stiffness: 500, damping: 28, delay: delay + 0.04 }}
       >
-        <CheckCircle2 size={15} className="text-emerald-400 shrink-0" />
+        <CheckCircle2 size={13} className="shrink-0" style={{ color: "#22c55e" }} />
       </motion.div>
-      <span className="text-[13px] font-light" style={{ color: "var(--cometa-fg-muted)" }}>
+      <span className="text-[12px] font-light tracking-wide" style={{ color: "rgba(255,255,255,0.55)" }}>
         {label}
       </span>
     </motion.div>
@@ -143,56 +152,57 @@ function VaultSealCard({ seal }: { seal: string }) {
 
   return (
     <motion.div
-      className="w-full rounded-2xl px-5 py-4"
-      style={{
-        background: "color-mix(in srgb, var(--cometa-accent) 8%, transparent)",
-        border:     "1px solid color-mix(in srgb, var(--cometa-accent) 22%, transparent)",
-      }}
+      className="w-full"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: 1.1 }}
     >
-      <div className="flex items-center gap-2 mb-3">
-        <Shield size={13} style={{ color: "var(--cometa-accent)" }} />
-        <p className="text-[9px] font-semibold uppercase tracking-[0.2em]"
+      {/* Label */}
+      <div className="flex items-center gap-1.5 mb-2 justify-center">
+        <Shield size={11} style={{ color: "var(--cometa-accent)" }} />
+        <p className="text-[9px] uppercase tracking-[0.22em]"
            style={{ color: "var(--cometa-accent)" }}>
-          ID de Transacción · Sello de Bóveda SHA-256
+          Hash de Auditoría · SHA-256
         </p>
       </div>
-      <p className="text-[10px] font-light mb-3 leading-relaxed"
-         style={{ color: "var(--cometa-fg-muted)" }}>
-        Este código garantiza que tus datos han sido cifrados y guardados en la Bóveda
-        sin alteraciones. Guárdalo como referencia de integridad.
-      </p>
+
+      {/* Hash row */}
       <div
-        className="rounded-xl px-4 py-3 flex items-center justify-between gap-3"
+        className="flex items-center gap-2 rounded-2xl px-4 py-3"
         style={{
-          background: "color-mix(in srgb, var(--cometa-card-border) 60%, transparent)",
-          border: "1px solid color-mix(in srgb, var(--cometa-accent) 18%, transparent)",
+          background: "rgba(255,255,255,0.04)",
+          border:     "1px solid rgba(255,255,255,0.08)",
         }}
       >
-        <p className="font-mono text-[10px] break-all leading-relaxed"
-           style={{ color: "var(--cometa-accent)" }}>
+        <p className="flex-1 font-mono text-[10px] break-all leading-relaxed text-left"
+           style={{ color: "rgba(255,255,255,0.65)" }}>
           {seal}
         </p>
         <button
           onClick={handleCopy}
-          className="shrink-0 rounded-lg p-1.5 transition-colors"
-          style={{ color: "var(--cometa-accent)" }}
-          title="Copiar sello"
+          className="shrink-0 rounded-lg p-2 transition-all hover:opacity-80"
+          style={{
+            background: copied ? "rgba(52,211,153,0.12)" : "rgba(255,255,255,0.06)",
+            color: copied ? "#34d399" : "var(--cometa-accent)",
+          }}
+          title="Copiar hash"
         >
           <AnimatePresence mode="wait">
             {copied
               ? <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                  <Check size={14} />
+                  <Check size={13} />
                 </motion.span>
-              : <motion.span key="copy"  initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                  <Copy size={14} />
+              : <motion.span key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                  <Copy size={13} />
                 </motion.span>
             }
           </AnimatePresence>
         </button>
       </div>
+
+      <p className="mt-2 text-center text-[10px]" style={{ color: "rgba(255,255,255,0.28)" }}>
+        Guárdalo como comprobante de integridad de tu entrega
+      </p>
     </motion.div>
   );
 }
@@ -216,129 +226,99 @@ function SuccessContent() {
 
   return (
     <div
-      className="relative min-h-screen flex flex-col items-center justify-center px-6 text-center"
+      className="min-h-screen flex flex-col"
       style={{ background: "var(--cometa-bg)" }}
     >
-      <ResetTheme theme="pearl" />
-
-      {/* Confetti burst on mount */}
+      <ResetTheme theme="obsidian" />
       {ready && <Confetti />}
 
-      <motion.div
-        className="flex flex-col items-center gap-6 w-full max-w-sm"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 20 }}
-        transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      {/* ── Header: logo izquierda · logout derecha ── */}
+      <motion.header
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="flex items-center justify-between px-6 h-14 shrink-0 border-b"
+        style={{ borderColor: "rgba(255,255,255,0.06)" }}
       >
-        {/* Brand comet */}
-        <motion.div
-          initial={{ scale: 0.6, opacity: 0 }}
-          animate={{ scale: 1,   opacity: 1 }}
-          transition={{ type: "spring", stiffness: 300, damping: 22, delay: 0.05 }}
-        >
-          <CometSymbol size={64} />
-        </motion.div>
-
-        {/* Heading */}
-        <motion.h1
-          className="text-2xl sm:text-3xl"
-          style={{ color: "var(--cometa-fg)", fontWeight: 100, letterSpacing: "0.04em" }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.35 }}
-        >
-          ¡Carga Exitosa!
-        </motion.h1>
-
-        <motion.p
-          className="text-sm leading-relaxed"
-          style={{ color: "var(--cometa-fg-muted)", fontWeight: 300 }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.5 }}
-        >
-          Tus métricas han sido registradas en la Bóveda de Cometa.
-          <br />
-          Se ha enviado tu recibo digital al correo.
-        </motion.p>
-
-        {/* Progress bar — 100% */}
-        <motion.div
-          className="w-full"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.6 }}
-        >
-          <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[9px] uppercase tracking-[0.18em]"
-               style={{ color: "var(--cometa-fg-muted)" }}>
-              Checklist del expediente
-            </p>
-            <p className="text-[9px] font-semibold" style={{ color: "#34d399" }}>
-              100%
-            </p>
-          </div>
-          <div className="w-full h-1.5 rounded-full overflow-hidden"
-               style={{ background: "var(--cometa-card-border)" }}>
-            <motion.div
-              className="h-full rounded-full"
-              style={{ background: "#34d399" }}
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 0.8, delay: 0.7, ease: "easeOut" }}
-            />
-          </div>
-        </motion.div>
-
-        {/* Checklist items */}
-        <div className="w-full space-y-3 text-left">
-          {CHECKLIST_ITEMS.map((label, i) => (
-            <ChecklistRow key={label} label={label} delay={0.75 + i * 0.12} />
-          ))}
-        </div>
-
-        {/* Vault Seal (only when available) */}
-        {seal && <VaultSealCard seal={seal} />}
-
-        {/* Divider */}
-        <motion.div
-          className="w-12 h-px"
-          style={{ background: "var(--cometa-card-border)" }}
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: 1 }}
-          transition={{ duration: 0.4, delay: seal ? 1.5 : 1.3 }}
+        <img
+          src="/COMETALOGO.png"
+          alt="Cometa"
+          className="h-6 w-auto object-contain"
+          style={{ filter: "brightness(0) invert(1)", opacity: 0.8 }}
         />
-
-        {/* Actions */}
-        <motion.div
-          className="flex flex-col items-center gap-3 w-full"
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1,  y: 0 }}
-          transition={{ duration: 0.45, delay: seal ? 1.6 : 1.4 }}
+        <button
+          onClick={handleLogout}
+          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] transition-all hover:opacity-80"
+          style={{
+            border:  "1px solid rgba(255,255,255,0.14)",
+            color:   "rgba(255,255,255,0.6)",
+          }}
         >
-          <button
+          <LogOut size={12} className="shrink-0" />
+          Cerrar sesión
+        </button>
+      </motion.header>
+
+      {/* ── Contenido central ── */}
+      <div className="flex-1 flex items-center justify-center px-6 py-12">
+        <motion.div
+          className="flex flex-col items-center gap-8 w-full max-w-xs text-center"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: ready ? 1 : 0, y: ready ? 0 : 24 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        >
+          {/* Checkmark hero */}
+          <GiantCheckmark />
+
+          {/* Heading */}
+          <motion.div
+            className="flex flex-col items-center gap-3"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.65 }}
+          >
+            <h1
+              className="text-4xl"
+              style={{ color: "#ffffff", fontWeight: 200, letterSpacing: "-0.02em" }}
+            >
+              ¡Carga Exitosa!
+            </h1>
+            <p
+              className="text-[13px] leading-6"
+              style={{ color: "rgba(255,255,255,0.42)", fontWeight: 300 }}
+            >
+              Tus métricas están en la Bóveda Cometa.<br />
+              Tu recibo digital fue enviado al correo.
+            </p>
+          </motion.div>
+
+          {/* Checklist items */}
+          <motion.div
+            className="w-full flex flex-col gap-3"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.85 }}
+          >
+            {CHECKLIST_ITEMS.map((label, i) => (
+              <ChecklistRow key={label} label={label} delay={0.9 + i * 0.09} />
+            ))}
+          </motion.div>
+
+          {/* Vault Seal */}
+          {seal && <VaultSealCard seal={seal} />}
+
+          {/* CTA */}
+          <motion.button
             onClick={() => router.push("/founder/onboarding")}
             className="w-full rounded-xl px-6 py-3 text-sm tracking-wide transition-opacity hover:opacity-80"
             style={{ background: "var(--cometa-accent)", color: "var(--cometa-accent-fg)", fontWeight: 400 }}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: seal ? 1.5 : 1.3 }}
           >
             Subir otro documento
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="text-[11px] uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ color: "var(--cometa-fg-muted)" }}
-          >
-            Cerrar sesión
-          </button>
+          </motion.button>
         </motion.div>
-      </motion.div>
-
-      {/* Watermark */}
-      <div className="absolute bottom-8 opacity-15 pointer-events-none">
-        <img src="/COMETALOGO.png" alt="Cometa"
-             className="h-5 w-auto object-contain"
-             style={{ filter: "brightness(0) invert(1)" }} />
       </div>
     </div>
   );

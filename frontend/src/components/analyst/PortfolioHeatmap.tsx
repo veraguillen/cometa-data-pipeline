@@ -251,7 +251,14 @@ function Legend() {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export default function PortfolioHeatmap() {
+interface PortfolioHeatmapProps {
+  /** When provided, restricts the heatmap to this portfolio/fund. */
+  portfolioId?:    string | null;
+  /** Called when the user clicks a company row or cell. Receives the company key. */
+  onCompanyClick?: (companyKey: string) => void;
+}
+
+export default function PortfolioHeatmap({ portfolioId, onCompanyClick }: PortfolioHeatmapProps) {
   const router = useRouter();
 
   const [data,    setData]    = useState<CoverageResponse | null>(null);
@@ -266,7 +273,7 @@ export default function PortfolioHeatmap() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchCoverage();
+      const res = await fetchCoverage(portfolioId);
       setData(res);
       // Rebuild lookup
       const map = new Map<string, CoverageCell>();
@@ -279,7 +286,7 @@ export default function PortfolioHeatmap() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [portfolioId]); // re-fetch when the selected fund changes
 
   useEffect(() => { load(); }, [load]);
 
@@ -293,8 +300,12 @@ export default function PortfolioHeatmap() {
   const handleCellLeave = useCallback(() => setTooltip(null), []);
 
   const handleCellClick = useCallback((company: string) => {
-    router.push(`/analyst/dashboard?company_id=${encodeURIComponent(company)}`);
-  }, [router]);
+    if (onCompanyClick) {
+      onCompanyClick(company);
+    } else {
+      router.push(`/analyst/dashboard?company_id=${encodeURIComponent(company)}`);
+    }
+  }, [onCompanyClick, router]);
 
   // ── Skeleton loader ───────────────────────────────────────────────────────
   if (loading) {

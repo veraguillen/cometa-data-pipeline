@@ -35,7 +35,8 @@ import { usePeriodFilter } from "@/hooks/usePeriodFilter";
 import { buildExecutiveSummary } from "@/components/analyst/ExecutiveSummaryText";
 import { extractKPISources, extractKPIs } from "@/services/analyst";
 import { formatVaultDate } from "@/lib/utils";
-import { AlertCircle, RefreshCw, Download } from "lucide-react";
+import { AlertCircle, RefreshCw, Download, Pencil } from "lucide-react";
+import KpiEditPanel from "@/components/analyst/KpiEditPanel";
 
 type Fund = NonNullable<AnalystSidebarProps["selectedFund"]>;
 
@@ -78,6 +79,7 @@ export default function AnalystDashboardPage() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [inviteMode,        setInviteMode]        = useState(false);
   const [inviteModalOpen,   setInviteModalOpen]   = useState(false);
+  const [editingReportId,   setEditingReportId]   = useState<string | null>(null);
 
   const { results, loading, error, refresh } =
     useAnalystData(selectedCompanyId);
@@ -147,6 +149,15 @@ export default function AnalystDashboardPage() {
     return src === "bigquery_legacy";
   }, [activeResult, results]);
 
+  // ── Reports tab: only real PDF submissions, no BigQuery legacy rows ─────────
+  const reportResults = useMemo(
+    () => filteredResults.filter(
+      (r) => (r.data as Record<string, unknown>)?._source !== "bigquery_legacy"
+        && r.metadata.original_filename !== "",
+    ),
+    [filteredResults],
+  );
+
   const kpiSources      = extractKPISources(results);
   const lastProcessedAt =
     activeResult?.metadata?.processed_at
@@ -186,7 +197,9 @@ export default function AnalystDashboardPage() {
           selectedCompanyId={selectedCompanyId}
           onCompanySelect={(id) => {
             setSelectedCompanyId(id);
-            setActiveTab("dashboard");
+            // Stay on the current tab — only jump to dashboard when arriving
+            // from coverage (which sets its own tab via onCompanyClick).
+            if (activeTab === "coverage") setActiveTab("dashboard");
             setMobileSidebarOpen(false);
             // Reset filter + auto-year guard so the new company gets its own defaults
             periodFilter.reset();
@@ -224,9 +237,9 @@ export default function AnalystDashboardPage() {
                     onClick={() => setActiveTab(tab)}
                     className="px-3 py-1 rounded-md text-xs transition-all duration-200"
                     style={active ? {
-                      background: "color-mix(in srgb, var(--cometa-accent) 15%, transparent)",
-                      color:      "var(--cometa-accent)",
-                      border:     "1px solid color-mix(in srgb, var(--cometa-accent) 25%, transparent)",
+                      background: "var(--cometa-accent)",
+                      color:      "var(--cometa-accent-fg)",
+                      border:     "1px solid var(--cometa-accent)",
                     } : {
                       color:  "var(--cometa-fg-muted)",
                       border: "1px solid transparent",
@@ -435,54 +448,97 @@ export default function AnalystDashboardPage() {
                     Selecciona una empresa en el sidebar.
                   </div>
                 )}
-                {filteredResults.length === 0 && selectedCompanyId && !loading && (
+                {reportResults.length === 0 && selectedCompanyId && !loading && (
                   <div className="py-12 text-center text-[12px]" style={{ color: "var(--cometa-fg-muted)" }}>
                     {periodFilter.isActive
                       ? "Sin reportes en el período seleccionado."
-                      : "No hay reportes para esta empresa."}
+                      : "Esta empresa no ha subido documentos todavía."}
                   </div>
                 )}
-                {filteredResults.map((r) => (
-                  <div
-                    key={r.id}
-                    className="theme-card rounded-xl px-4 py-3 flex items-center justify-between gap-4"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px]" style={{ color: "var(--cometa-fg)", fontWeight: 400 }}>
-                        {r.metadata.original_filename.replace(/^[a-f0-9]+_/, "")}
-                      </p>
-                      <p className="mt-0.5 text-[10px]" style={{ color: "var(--cometa-fg-muted)" }}>
-                        {r.metadata.founder_email}
-                        {" · "}
-                        {new Date(r.metadata.processed_at).toLocaleDateString("es-ES")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-mono text-[9px]" style={{ color: "var(--cometa-fg-muted)" }}>
-                        {r.metadata.file_hash.slice(0, 8)}…
-                      </span>
-                      <button
-                        onClick={() =>
-                          exportResultAsJson(
-                            `${r.metadata.original_filename.replace(/^[a-f0-9]+_/, "")}.json`,
-                            r,
-                          )
-                        }
-                        className="rounded p-1 transition-opacity hover:opacity-70"
-                        style={{ color: "var(--cometa-fg-muted)" }}
-                        title="Descargar JSON"
+                {reportResults.map((r) => {
+                  const isEditing = editingReportId === r.id;
+                  return (
+                    <div key={r.metadata.file_hash || r.id}>
+                      {/* ── Report row ── */}
+                      <div
+                        className="theme-card flex items-center justify-between gap-4 px-4 py-3"
+                        style={{ borderRadius: isEditing ? "0.75rem 0.75rem 0 0" : "0.75rem" }}
                       >
-                        <Download size={11} />
-                      </button>
+                        <div className="min-w-0">
+                          <p className="truncate text-[13px]" style={{ color: "var(--cometa-fg)", fontWeight: 400 }}>
+                            {r.metadata.original_filename.replace(/^[a-f0-9]+_/, "")}
+                          </p>
+                          <p className="mt-0.5 text-[10px]" style={{ color: "var(--cometa-fg-muted)" }}>
+                            {r.metadata.founder_email}
+                            {" · "}
+                            {new Date(r.metadata.processed_at).toLocaleDateString("es-ES")}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="font-mono text-[9px]" style={{ color: "var(--cometa-fg-muted)" }}>
+                            {r.metadata.file_hash.slice(0, 8)}…
+                          </span>
+
+                          {/* Edit button */}
+                          <button
+                            onClick={() => setEditingReportId(isEditing ? null : r.id)}
+                            className="flex items-center gap-1 rounded-lg px-2.5 py-1 text-[10px] transition-all"
+                            style={isEditing ? {
+                              background: "color-mix(in srgb, var(--cometa-accent) 14%, transparent)",
+                              color:      "var(--cometa-accent)",
+                              border:     "1px solid color-mix(in srgb, var(--cometa-accent) 28%, transparent)",
+                            } : {
+                              color:      "var(--cometa-fg-muted)",
+                              border:     "1px solid var(--cometa-card-border)",
+                            }}
+                            title="Editar KPIs con hash de auditoría"
+                          >
+                            <Pencil size={10} />
+                            {isEditing ? "Cerrar" : "Editar"}
+                          </button>
+
+                          {/* Download JSON */}
+                          <button
+                            onClick={() =>
+                              exportResultAsJson(
+                                `${r.metadata.original_filename.replace(/^[a-f0-9]+_/, "")}.json`,
+                                r,
+                              )
+                            }
+                            className="rounded p-1 transition-opacity hover:opacity-70"
+                            style={{ color: "var(--cometa-fg-muted)" }}
+                            title="Descargar JSON"
+                          >
+                            <Download size={11} />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ── Inline edit panel ── */}
+                      <AnimatePresence>
+                        {isEditing && (
+                          <KpiEditPanel
+                            result={r}
+                            onClose={() => setEditingReportId(null)}
+                          />
+                        )}
+                      </AnimatePresence>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </section>
             )}
 
             {/* ── Coverage tab ── */}
             {activeTab === "coverage" && (
-              <PortfolioHeatmap />
+              <PortfolioHeatmap
+                portfolioId={selectedFund ?? undefined}
+                onCompanyClick={(key) => {
+                  setSelectedCompanyId(key);
+                  setActiveTab("dashboard");
+                }}
+              />
             )}
 
           </main>

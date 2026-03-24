@@ -103,8 +103,9 @@ export function extractKPISources(
  * Returns the full company × period grid used by PortfolioHeatmap.
  * Throws on network or schema error (caller decides how to handle).
  */
-export async function fetchCoverage(): Promise<CoverageResponse> {
-  return apiGet("/api/analyst/coverage", coverageResponseSchema);
+export async function fetchCoverage(portfolioId?: string | null): Promise<CoverageResponse> {
+  const qs = portfolioId ? `?portfolio_id=${encodeURIComponent(portfolioId)}` : "";
+  return apiGet(`/api/analyst/coverage${qs}`, coverageResponseSchema);
 }
 
 // ── Convenience: extract the latest KPIs from a result set ───────────────────

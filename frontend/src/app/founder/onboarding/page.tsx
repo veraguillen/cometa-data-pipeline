@@ -44,7 +44,7 @@ export default function FounderOnboardingPage() {
       className="min-h-screen"
       style={{ background: "var(--cometa-bg)" }}
     >
-      <ResetTheme theme="pearl" />
+      <ResetTheme theme="obsidian" />
       {/* ── Header — matches fron/AppHeader ── */}
       <motion.header
         initial={{ opacity: 0, y: -12 }}
@@ -93,12 +93,13 @@ export default function FounderOnboardingPage() {
         </div>
       </motion.header>
 
-      {/* ── Body — centered, max-w-2xl ── */}
-      <div className="max-w-2xl mx-auto px-6 py-16">
+      {/* ── Body — full-height centered ── */}
+      <div className="flex min-h-[calc(100vh-56px)] flex-col items-center justify-center px-4 py-10">
         <motion.div
           initial={{ opacity: 0, y: 16, filter: "blur(6px)" }}
           animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
           transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="flex flex-col items-center w-full max-w-md text-center"
         >
           <h1
             className="text-3xl font-extralight mb-2"
@@ -110,7 +111,7 @@ export default function FounderOnboardingPage() {
             className="text-sm font-light mb-10"
             style={{ color: "var(--cometa-fg-muted)" }}
           >
-            Sube tu archivo financiero (PDF, Excel, CSV) y el sistema extraerá los KPIs con IA.
+            Sube tu reporte financiero y la IA extraerá los KPIs automáticamente.
           </p>
 
           {/* Upload flow — all states handled inside (upload → missing → success) */}
@@ -124,7 +125,7 @@ export default function FounderOnboardingPage() {
             <motion.div
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-8 kpi-card text-center"
+              className="mt-8 w-full kpi-card text-center"
             >
               <p className="text-xs uppercase tracking-widest mb-1" style={{ color: "var(--cometa-fg-muted)" }}>
                 Último documento procesado

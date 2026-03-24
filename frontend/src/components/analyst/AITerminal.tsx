@@ -115,21 +115,21 @@ function CopyBox({ url }: { url: string }) {
     <div
       className="mt-3 rounded-lg overflow-hidden"
       style={{
-        border:     "1px solid color-mix(in srgb, #fbbf24 30%, transparent)",
+        border:     "1px solid color-mix(in srgb, var(--cometa-accent) 30%, transparent)",
         background: "color-mix(in srgb, #0A0A0A 90%, transparent)",
       }}
     >
       {/* URL display */}
       <div
         className="px-3 py-2 text-[11px] break-all font-mono leading-snug"
-        style={{ color: "#fbbf24", opacity: 0.9 }}
+        style={{ color: "var(--cometa-accent)", opacity: 0.9 }}
       >
         {url}
       </div>
       {/* Action row */}
       <div
         className="flex items-center gap-2 border-t px-3 py-2"
-        style={{ borderColor: "color-mix(in srgb, #fbbf24 20%, transparent)" }}
+        style={{ borderColor: "color-mix(in srgb, var(--cometa-accent) 20%, transparent)" }}
       >
         <button
           onClick={handleCopy}
@@ -137,11 +137,11 @@ function CopyBox({ url }: { url: string }) {
           style={{
             background: copied
               ? "color-mix(in srgb, #34d399 15%, transparent)"
-              : "color-mix(in srgb, #fbbf24 12%, transparent)",
+              : "color-mix(in srgb, var(--cometa-accent) 12%, transparent)",
             border: copied
               ? "1px solid color-mix(in srgb, #34d399 30%, transparent)"
-              : "1px solid color-mix(in srgb, #fbbf24 25%, transparent)",
-            color: copied ? "#34d399" : "#fbbf24",
+              : "1px solid color-mix(in srgb, var(--cometa-accent) 25%, transparent)",
+            color: copied ? "#34d399" : "var(--cometa-accent)",
           }}
         >
           {copied
@@ -517,20 +517,20 @@ export default function AITerminal({
         onClick={() => setOpen((o) => !o)}
         className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-2.5 rounded-full"
         style={{
-          background:     "var(--cometa-card-bg)",
-          border:         "1px solid var(--cometa-card-border)",
-          color:          "var(--cometa-fg)",
+          background:     "var(--cometa-accent)",
+          border:         "1px solid var(--cometa-accent)",
+          color:          "var(--cometa-accent-fg)",
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
           boxShadow:
-            "0 4px 24px color-mix(in srgb, var(--cometa-accent) 15%, transparent)",
+            "0 4px 24px color-mix(in srgb, var(--cometa-accent) 30%, transparent)",
           transition: "background 500ms ease, border-color 500ms ease, color 500ms ease",
         }}
       >
-        <Sparkles size={15} style={{ color: "var(--cometa-accent)" }} />
+        <Sparkles size={15} />
         <span
           className="hidden sm:inline text-[13px]"
-          style={{ fontWeight: 400 }}
+          style={{ fontWeight: 500 }}
         >
           Cometa AI
         </span>
@@ -551,7 +551,7 @@ export default function AITerminal({
               right:          "1rem",
               maxHeight:      "min(28rem, 68vh)",
               border:         inviteStep !== null
-                ? "1px solid color-mix(in srgb, #fbbf24 30%, transparent)"
+                ? "1px solid color-mix(in srgb, var(--cometa-accent) 30%, transparent)"
                 : "1px solid var(--cometa-card-border)",
               background:     "color-mix(in srgb, var(--cometa-bg) 90%, transparent)",
               backdropFilter: "blur(28px)",
@@ -569,12 +569,12 @@ export default function AITerminal({
               className="flex items-center gap-2.5 px-5 py-3 border-b shrink-0"
               style={{
                 borderColor: inviteStep !== null
-                  ? "color-mix(in srgb, #fbbf24 20%, transparent)"
+                  ? "color-mix(in srgb, var(--cometa-accent) 20%, transparent)"
                   : "var(--cometa-card-border)",
                 transition:  "border-color 300ms ease",
               }}
             >
-              <Sparkles size={13} style={{ color: inviteStep !== null ? "#fbbf24" : "var(--cometa-accent)" }} />
+              <Sparkles size={13} style={{ color: "var(--cometa-accent)" }} />
               <span
                 className="text-[12px]"
                 style={{ color: "var(--cometa-fg)", fontWeight: 400, transition: "color 500ms ease" }}
@@ -587,9 +587,9 @@ export default function AITerminal({
                 <span
                   className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px]"
                   style={{
-                    background: "color-mix(in srgb, #fbbf24 12%, transparent)",
-                    color:      "#fbbf24",
-                    border:     "1px solid color-mix(in srgb, #fbbf24 25%, transparent)",
+                    background: "color-mix(in srgb, var(--cometa-accent) 12%, transparent)",
+                    color:      "var(--cometa-accent)",
+                    border:     "1px solid color-mix(in srgb, var(--cometa-accent) 25%, transparent)",
                   }}
                 >
                   <UserPlus size={9} />
@@ -668,7 +668,7 @@ export default function AITerminal({
                         <UserPlus
                           size={13}
                           className="mt-0.5 shrink-0"
-                          style={{ color: "#fbbf24" }}
+                          style={{ color: "var(--cometa-accent)" }}
                         />
                       ) : (
                         <Bot
@@ -683,18 +683,18 @@ export default function AITerminal({
                       style={{
                         background:
                           msg.isInvite && msg.role === "assistant"
-                            ? "color-mix(in srgb, #fbbf24 8%, transparent)"
+                            ? "color-mix(in srgb, var(--cometa-accent) 8%, transparent)"
                             : msg.role === "user"
                               ? "color-mix(in srgb, var(--cometa-accent) 10%, transparent)"
                               : "color-mix(in srgb, var(--cometa-fg) 6%, transparent)",
                         border: msg.isInvite && msg.role === "assistant"
-                          ? "1px solid color-mix(in srgb, #fbbf24 18%, transparent)"
+                          ? "1px solid color-mix(in srgb, var(--cometa-accent) 18%, transparent)"
                           : `1px solid ${
                               msg.role === "user"
                                 ? "color-mix(in srgb, var(--cometa-accent) 20%, transparent)"
                                 : "var(--cometa-card-border)"
                             }`,
-                        color:      msg.isInvite && msg.role === "assistant" ? "#fbbf24" : "var(--cometa-fg)",
+                        color:      msg.isInvite && msg.role === "assistant" ? "var(--cometa-accent)" : "var(--cometa-fg)",
                         fontWeight: msg.role === "assistant" ? 300 : 400,
                         fontFamily: "var(--font-sans)",
                         whiteSpace: "pre-wrap",
@@ -714,7 +714,7 @@ export default function AITerminal({
                           style={{
                             width:        "1.5px",
                             height:       "0.9em",
-                            background:   msg.isInvite ? "#fbbf24" : "var(--cometa-accent)",
+                            background:   "var(--cometa-accent)",
                             borderRadius: "1px",
                             display:      "inline-block",
                           }}
@@ -740,7 +740,7 @@ export default function AITerminal({
                   <Bot
                     size={13}
                     className="mt-0.5 shrink-0"
-                    style={{ color: inviteStep !== null ? "#fbbf24" : "var(--cometa-accent)" }}
+                    style={{ color: "var(--cometa-accent)" }}
                   />
                   <div
                     className="flex items-center gap-1.5 rounded-xl px-3.5 py-2.5"
@@ -753,7 +753,7 @@ export default function AITerminal({
                       <motion.span
                         key={i}
                         className="block h-1.5 w-1.5 rounded-full"
-                        style={{ background: inviteStep !== null ? "#fbbf24" : "var(--cometa-fg-muted)" }}
+                        style={{ background: "var(--cometa-fg-muted)" }}
                         animate={{ opacity: [0.3, 1, 0.3] }}
                         transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
                       />
@@ -771,7 +771,7 @@ export default function AITerminal({
                   background:
                     "color-mix(in srgb, var(--cometa-card-bg) 85%, transparent)",
                   border:         inviteStep !== null
-                    ? "1px solid color-mix(in srgb, #fbbf24 20%, transparent)"
+                    ? "1px solid color-mix(in srgb, var(--cometa-accent) 20%, transparent)"
                     : "1px solid rgba(255, 255, 255, 0.10)",
                   backdropFilter: "blur(12px)",
                   WebkitBackdropFilter: "blur(12px)",
@@ -815,8 +815,8 @@ export default function AITerminal({
                   className="shrink-0 flex items-center justify-center rounded-lg p-2
                              transition-opacity disabled:opacity-25 hover:opacity-80"
                   style={{
-                    background: inviteStep !== null ? "#fbbf24" : "var(--cometa-accent)",
-                    color:      inviteStep !== null ? "#000000" : "var(--cometa-accent-fg)",
+                    background: "var(--cometa-accent)",
+                    color:      "var(--cometa-accent-fg)",
                     transition: "background 300ms ease",
                   }}
                   title="Enviar (Enter)"

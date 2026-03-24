@@ -28,7 +28,7 @@ import GeometricBackground from "@/components/analyst/GeometricBackground";
 import ResetTheme from "@/components/ResetTheme";
 import axios from "axios";
 
-const INTERNAL_DOMAINS = ["@cometa.vc", "@cometa.com", "@cometa.fund", "@cometavc.com"];
+const INTERNAL_DOMAINS = ["@cometa.vc", "@cometa.fund", "@cometavc.com"];
 
 // Exported page wraps the real content in Suspense (required by useSearchParams in App Router)
 export default function LoginPage() {

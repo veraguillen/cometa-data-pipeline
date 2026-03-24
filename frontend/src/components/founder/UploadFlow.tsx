@@ -20,11 +20,11 @@
 import { useRef, useState, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, CheckCircle2, AlertCircle, FileText, CheckCircle, Loader2 } from "lucide-react";
-import { uploadDocument, notifyUploadComplete, finalizeExpediente, fetchKpisByVertical } from "@/services/founder";
+import { Upload, AlertCircle, FileText, CheckCircle, Loader2 } from "lucide-react";
+import { uploadDocument, notifyUploadComplete, finalizeExpediente, fetchKpisByVertical, fetchFounderConfig } from "@/services/founder";
 import ValidationModal from "@/components/founder/ValidationModal";
 import MissingDataPanel from "@/components/founder/MissingDataPanel";
-import type { UploadResponse, ChecklistStatus, KpiMetadataItem } from "@/lib/schemas";
+import type { UploadResponse, ChecklistStatus, KpiMetadataItem, FounderConfig } from "@/lib/schemas";
 
 type UploadState = "idle" | "dragging" | "uploading" | "missing" | "success" | "error";
 type Vertical    = "SAAS" | "FINTECH" | "MARKETPLACE" | "GENERAL" | "INSURTECH";
@@ -134,21 +134,6 @@ interface UploadFlowProps {
   onSuccess?:   (result: UploadResponse) => void;
 }
 
-/** Minimal SVG comet — Cometa brand symbol */
-function CometSymbol({ size = 32, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg
-      width={size} height={size} viewBox="0 0 32 32" fill="none"
-      xmlns="http://www.w3.org/2000/svg" aria-hidden
-    >
-      <circle cx="22" cy="10" r="4.5" fill={color} opacity="0.95" />
-      <line x1="19" y1="13" x2="4"  y2="28" stroke={color} strokeWidth="2"   strokeLinecap="round" opacity="0.7" />
-      <line x1="18" y1="14" x2="5"  y2="26" stroke={color} strokeWidth="1.2" strokeLinecap="round" opacity="0.35" />
-      <line x1="17" y1="13" x2="6"  y2="24" stroke={color} strokeWidth="0.7" strokeLinecap="round" opacity="0.15" />
-    </svg>
-  );
-}
-
 /**
  * Merge two ChecklistStatus objects without dropping any KPI that is already present.
  * The merged checklist's present_kpis is the union of both; missing_critical_kpis is
@@ -202,10 +187,25 @@ export default function UploadFlow({ founderEmail, onSuccess }: UploadFlowProps)
   const [uploadedFiles,   setUploadedFiles]   = useState<{ name: string; hash: string }[]>([]);
   const [mergedChecklist, setMergedChecklist] = useState<ChecklistStatus | null>(null);
 
+  // Auto-detected config from /api/founder/config
+  const [autoConfig,       setAutoConfig]       = useState<FounderConfig | null>(null);
+  const [configLoading,    setConfigLoading]    = useState(true);
+
   // Vertical selector (step 0) + dynamic KPI catalogue from dim_kpi_metadata
   const [selectedVertical, setSelectedVertical] = useState<Vertical | null>(null);
   const [verticalKpis,     setVerticalKpis]     = useState<KpiMetadataItem[]>([]);
   const [kpisLoading,      setKpisLoading]      = useState(false);
+
+  // Fetch auto-config on mount — silently falls back to manual selector on failure
+  useEffect(() => {
+    fetchFounderConfig().then((cfg) => {
+      setAutoConfig(cfg);
+      if (cfg?.vertical && (Object.keys(VERTICAL_META) as Vertical[]).includes(cfg.vertical as Vertical)) {
+        setSelectedVertical(cfg.vertical as Vertical);
+      }
+      setConfigLoading(false);
+    });
+  }, []);
 
   // Fetch KPIs from the API whenever the vertical changes
   useEffect(() => {
@@ -294,7 +294,8 @@ export default function UploadFlow({ founderEmail, onSuccess }: UploadFlowProps)
     setFinalizing(true);
     try {
       const companyDomain =
-        uploadResult?.company_domain ??
+        autoConfig?.company_id ||
+        uploadResult?.company_domain ||
         (founderEmail.includes("@") ? founderEmail.split("@")[1] : "");
       const response = await finalizeExpediente({
         file_hashes:    uploadedFiles.map((f) => f.hash),
@@ -354,21 +355,48 @@ export default function UploadFlow({ founderEmail, onSuccess }: UploadFlowProps)
     uploadState !== "missing" &&
     uploadState !== "uploading";
 
-  // Solo mostrar el drop zone cuando ya hay un vertical seleccionado
-  const verticalReady = selectedVertical !== null;
+  // Drop zone habilitado cuando hay vertical seleccionado o fue auto-detectado
+  const verticalReady = selectedVertical !== null || (autoConfig?.is_known === true);
 
   return (
     <>
       <div className="flex w-full max-w-md flex-col items-center gap-5">
 
-        {/* ── Step 0: Vertical selector (always visible until first upload) ── */}
+        {/* ── Step 0: Auto-config pill or Vertical selector ── */}
         {uploadedFiles.length === 0 && uploadState === "idle" && (
-          <VerticalSelector
-            selected={selectedVertical}
-            onSelect={setSelectedVertical}
-            kpis={verticalKpis}
-            kpisLoading={kpisLoading}
-          />
+          configLoading ? (
+            <div className="flex items-center gap-2 text-[11px]" style={{ color: "var(--cometa-fg-muted)" }}>
+              <Loader2 size={12} className="animate-spin shrink-0" />
+              Detectando perfil…
+            </div>
+          ) : autoConfig?.is_known ? (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="w-full max-w-md rounded-2xl px-4 py-3 flex items-center justify-between"
+              style={{
+                background: "color-mix(in srgb, var(--cometa-accent) 10%, transparent)",
+                border:     "1px solid color-mix(in srgb, var(--cometa-accent) 28%, transparent)",
+              }}
+            >
+              <div>
+                <p className="text-[9px] uppercase tracking-[0.18em] mb-0.5" style={{ color: "var(--cometa-accent)" }}>
+                  Empresa detectada
+                </p>
+                <p className="text-[12px] font-light" style={{ color: "var(--cometa-fg)" }}>
+                  {autoConfig.company_id} · {VERTICAL_META[autoConfig.vertical as Vertical]?.label ?? autoConfig.vertical}
+                </p>
+              </div>
+              <span className="text-lg">{VERTICAL_META[autoConfig.vertical as Vertical]?.icon ?? "📊"}</span>
+            </motion.div>
+          ) : (
+            <VerticalSelector
+              selected={selectedVertical}
+              onSelect={setSelectedVertical}
+              kpis={verticalKpis}
+              kpisLoading={kpisLoading}
+            />
+          )
         )}
 
         {/* ── Processed files list ── */}
@@ -463,25 +491,36 @@ export default function UploadFlow({ founderEmail, onSuccess }: UploadFlowProps)
                       initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
                       className="flex flex-col items-center gap-3 pointer-events-none text-center"
                     >
-                      <div className="relative flex items-center justify-center">
-                        <motion.div
-                          initial={{ scale: 0, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          transition={{ type: "spring", stiffness: 320, damping: 22 }}
-                          style={{ color: "var(--cometa-accent)" }}
-                        >
-                          <CometSymbol size={40} color="var(--cometa-accent)" />
-                        </motion.div>
-                        <motion.div
-                          className="absolute -bottom-1 -right-1"
-                          initial={{ scale: 0 }} animate={{ scale: 1 }}
-                          transition={{ delay: 0.25, type: "spring", stiffness: 400 }}
-                        >
-                          <CheckCircle2 size={16} className="text-emerald-400" />
-                        </motion.div>
-                      </div>
+                      {/* Checkmark animado */}
+                      <motion.div
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
+                        <svg width="52" height="52" viewBox="0 0 52 52" fill="none" aria-hidden>
+                          <motion.circle
+                            cx="26" cy="26" r="22"
+                            stroke="#22c55e" strokeWidth="2"
+                            fill="rgba(34,197,94,0.08)"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.5, ease: "easeOut" }}
+                          />
+                          <motion.path
+                            d="M15 26 L22 33 L37 19"
+                            stroke="#22c55e" strokeWidth="3"
+                            strokeLinecap="round" strokeLinejoin="round"
+                            fill="none"
+                            initial={{ pathLength: 0 }}
+                            animate={{ pathLength: 1 }}
+                            transition={{ duration: 0.4, delay: 0.35, ease: "easeOut" }}
+                          />
+                        </svg>
+                      </motion.div>
                       <div>
-                        <p className="text-sm font-semibold text-emerald-400">OK Subido</p>
+                        <p className="text-sm font-semibold" style={{ color: "#22c55e" }}>
+                          Documento entregado
+                        </p>
                         <p className="mt-1 text-[12px] font-light" style={{ color: "var(--cometa-fg-muted)" }}>
                           {statusMsg}
                         </p>
@@ -580,13 +619,28 @@ export default function UploadFlow({ founderEmail, onSuccess }: UploadFlowProps)
 
         {/* "Subir otro documento" — only when < 5 files and state is terminal */}
         {showUploadAnother && (
-          <button
+          <motion.button
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
             onClick={resetForNextFile}
-            className="text-[11px] uppercase tracking-widest transition-opacity hover:opacity-70"
-            style={{ color: "var(--cometa-fg-muted)" }}
+            className="w-full rounded-2xl px-5 py-3 text-[13px] font-medium tracking-wide transition-all hover:opacity-90 flex items-center justify-center gap-2"
+            style={{
+              background: "color-mix(in srgb, var(--cometa-accent) 12%, transparent)",
+              border:     "1px solid color-mix(in srgb, var(--cometa-accent) 40%, transparent)",
+              color:      "var(--cometa-accent)",
+            }}
           >
-            Subir otro documento ({uploadedFiles.length}/{MAX_FILES})
-          </button>
+            <Upload size={14} className="shrink-0" />
+            Subir otro documento
+            <span
+              className="ml-1 rounded-full px-2 py-0.5 text-[10px]"
+              style={{
+                background: "color-mix(in srgb, var(--cometa-accent) 18%, transparent)",
+              }}
+            >
+              {uploadedFiles.length}/{MAX_FILES}
+            </span>
+          </motion.button>
         )}
 
         {/* Limit reached message — only when checklist is complete */}

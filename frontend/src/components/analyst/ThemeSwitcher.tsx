@@ -23,8 +23,9 @@ export default function ThemeSwitcher() {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center justify-center rounded-lg p-1.5 transition-opacity hover:opacity-70"
         style={{
-          border: "1px solid var(--cometa-card-border)",
-          color:  "var(--cometa-fg-muted)",
+          background: "var(--cometa-accent)",
+          border:     "1px solid var(--cometa-accent)",
+          color:      "var(--cometa-accent-fg)",
         }}
         title={themeLabels[theme]}
       >
@@ -56,10 +57,8 @@ export default function ThemeSwitcher() {
                   onClick={() => { setTheme(t); setOpen(false); }}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-all text-left"
                   style={{
-                    background: theme === t
-                      ? "color-mix(in srgb, var(--cometa-fg) 8%, transparent)"
-                      : "transparent",
-                    color: theme === t ? "var(--cometa-fg)" : "var(--cometa-fg-muted)",
+                    background: theme === t ? "var(--cometa-accent)" : "transparent",
+                    color:      theme === t ? "var(--cometa-accent-fg)" : "var(--cometa-fg-muted)",
                   }}
                 >
                   {/* Dual swatch */}

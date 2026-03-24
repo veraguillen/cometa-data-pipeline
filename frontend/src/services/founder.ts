@@ -8,9 +8,11 @@ import {
   uploadResponseSchema,
   finalizeResponseSchema,
   kpiMetadataResponseSchema,
+  founderConfigSchema,
   type UploadResponse,
   type FinalizeResponse,
   type KpiMetadataItem,
+  type FounderConfig,
 } from "@/lib/schemas";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -77,6 +79,19 @@ export async function fetchKpisByVertical(vertical: string): Promise<KpiMetadata
     return response.kpis;
   } catch {
     return [];
+  }
+}
+
+// ── Founder auto-config — company_id y vertical desde JWT ─────────────────────
+/**
+ * GET /api/founder/config — devuelve company_id y vertical auto-detectados.
+ * Returns null on any error so UploadFlow falls back to manual selection.
+ */
+export async function fetchFounderConfig(): Promise<FounderConfig | null> {
+  try {
+    return await apiGet("/api/founder/config", founderConfigSchema);
+  } catch {
+    return null;
   }
 }
 

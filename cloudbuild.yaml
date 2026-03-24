@@ -93,9 +93,11 @@ steps:
       - --concurrency=10
       - --timeout=300
       - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID},GCS_INPUT_BUCKET=${_GCS_INPUT_BUCKET},GCS_OUTPUT_BUCKET=${_GCS_OUTPUT_BUCKET},BIGQUERY_DATASET=${_BIGQUERY_DATASET}
-      # GCP_SERVICE_ACCOUNT_JSON: único secreto real — el JSON completo de la
-      # service account se inyecta desde Secret Manager como variable de entorno.
-      - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest
+      # Secrets desde Secret Manager — nunca hardcodear en cloudbuild.yaml.
+      # Crear antes del primer deploy:
+      #   gcloud secrets create cometa-jwt-secret
+      #   gcloud secrets create cometa-gcp-credentials
+      - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest,JWT_SECRET=cometa-jwt-secret:latest
 
   # ── 6. Deploy Frontend ────────────────────────────────────────────────────────
   - name: gcr.io/google.com/cloudsdktool/cloud-sdk

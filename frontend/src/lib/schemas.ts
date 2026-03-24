@@ -333,3 +333,29 @@ export const finalizeResponseSchema = z.object({
 });
 
 export type FinalizeResponse = z.infer<typeof finalizeResponseSchema>;
+
+// ── FounderConfig — respuesta de GET /api/founder/config ─────────────────────
+// Espeja: founder_config() en api.py — auto-detección de empresa y vertical.
+
+export const founderConfigSchema = z.object({
+  company_id: z.string(),
+  vertical:   z.enum(["SAAS", "FINTECH", "MARKETPLACE", "INSURTECH", "GENERAL"]),
+  is_known:   z.boolean(),
+  domain:     z.string(),
+});
+
+export type FounderConfig = z.infer<typeof founderConfigSchema>;
+
+// ── AnalystEditResponse — respuesta de POST /api/analyst/audit-edit ──────────
+// Espeja: analyst_audit_edit() en api.py — batch edit con hash de auditoría.
+
+export const analystEditResponseSchema = z.object({
+  status:        z.string(),
+  audit_hash:    z.string(),
+  updated_kpis:  z.array(z.string()),
+  failed_kpis:   z.array(z.object({ kpi_key: z.string(), error: z.string() })).default([]),
+  submission_id: z.string(),
+  processed_at:  z.string(),
+});
+
+export type AnalystEditResponse = z.infer<typeof analystEditResponseSchema>;

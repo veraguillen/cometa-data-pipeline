@@ -7,7 +7,7 @@ if sys.stderr.encoding != "utf-8":
 from dotenv import load_dotenv
 load_dotenv()  # Carga .env desde el directorio de trabajo
 
-from fastapi import FastAPI, UploadFile, File, Header, HTTPException, Depends, Request
+from fastapi import FastAPI, UploadFile, File, Header, HTTPException, Depends, Request, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -301,7 +301,7 @@ async def _verify_origin(request: Request) -> None:
     )
 
 # ── A1: Derivación de tenant desde JWT ───────────────────────────────────────
-_INTERNAL_DOMAINS = {"cometa.vc", "cometa.com", "cometa.fund", "cometavc.com"}
+_INTERNAL_DOMAINS = {"cometa.vc", "cometa.fund", "cometavc.com"}
 
 def _derive_tenant_from_token(token: dict) -> str | None:
     """
@@ -2628,7 +2628,10 @@ async def get_all_results(company_id: str = None, token: dict = Depends(_require
             for blob in bucket.list_blobs(prefix=vault_prefix):
                 if not blob.name.endswith('.json'):
                     continue
-                blob_id = blob.name
+                # Deduplicate by the computed id (hash-based), not the full blob path.
+                # Two blobs from canonical and legacy prefixes can share the same derived
+                # id if the same file exists in both; track that to avoid React key errors.
+                blob_id = blob.name.replace('.json', '').replace(vault_prefix, '')
                 if blob_id in seen_ids:
                     continue
                 seen_ids.add(blob_id)
@@ -2851,10 +2854,109 @@ async def kpi_patch_update(
         )
 
 
+# ── Analyst batch-edit with audit hash ───────────────────────────────────────
+
+class AnalystEditRequest(BaseModel):
+    """Body for POST /api/analyst/audit-edit."""
+    submission_id: str                   # file_hash / submission_id in BigQuery
+    updates:       dict[str, str]        # { kpi_key: new_raw_value }
+    note:          str = ""              # Optional edit justification note
+
+
+@app.post("/api/analyst/audit-edit")
+@limiter.limit("30/minute")
+async def analyst_audit_edit(
+    request: Request,
+    body: AnalystEditRequest,
+    token: dict = Depends(_require_auth),
+) -> JSONResponse:
+    """
+    Batch-edit KPI values for a submission and return an audit hash.
+
+    Only accessible to ANALISTA role.  For each entry in ``body.updates``,
+    calls ``update_kpi_value()`` (sets ``is_manually_edited=TRUE`` + audit
+    trail in ``edited_raw_value``).  After all updates a SHA-256 vault seal
+    is generated covering: submission_id + sorted kpi_keys + analyst email +
+    timestamp.  This hash is the "recibo de edición" the analyst can attach
+    to the case.
+
+    Returns
+    -------
+    JSON ``{ status, audit_hash, updated_kpis, failed_kpis, submission_id }``
+    """
+    from src.services.hash_service import generate_vault_seal
+
+    # ── A1: ANALISTA-only gate ────────────────────────────────────────────────
+    role    = token.get("role", "")
+    user_id = token.get("user_id", "")
+    if role != "ANALISTA" and not user_id.startswith("ANA-"):
+        raise HTTPException(status_code=403, detail="Solo analistas pueden editar en batch.")
+
+    analyst_email: str = (token.get("email") or token.get("sub", "")).strip()
+
+    if not body.updates:
+        raise HTTPException(status_code=422, detail="updates no puede estar vacío.")
+
+    processed_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M")
+    updated_kpis: list[str] = []
+    failed_kpis:  list[dict] = []
+
+    for kpi_key, raw_value in body.updates.items():
+        raw_value = (raw_value or "").strip()
+        if not raw_value:
+            continue
+        try:
+            update_kpi_value(
+                submission_id=body.submission_id,
+                kpi_key=kpi_key,
+                new_raw_value=raw_value,
+            )
+            updated_kpis.append(kpi_key)
+        except Exception as _err:
+            failed_kpis.append({"kpi_key": kpi_key, "error": str(_err)})
+            print(f"⚠️  [analyst/audit-edit] {kpi_key}: {_err}")
+
+    if not updated_kpis:
+        raise HTTPException(
+            status_code=422,
+            detail=f"No se pudo actualizar ningún KPI. Detalles: {failed_kpis}",
+        )
+
+    # ── Generate audit hash ───────────────────────────────────────────────────
+    audit_hash = generate_vault_seal(
+        company_id   = analyst_email,
+        file_hash    = body.submission_id,
+        kpi_rows     = [
+            {"kpi_key": k, "raw_value": body.updates[k], "unit": "", "is_valid": True}
+            for k in sorted(updated_kpis)
+        ],
+        processed_at = processed_at,
+    )
+
+    print(
+        f"[analyst/audit-edit] analyst={analyst_email!r}  "
+        f"submission={body.submission_id[:12]}…  "
+        f"updated={len(updated_kpis)}  failed={len(failed_kpis)}  "
+        f"hash={audit_hash[:16]}…"
+    )
+
+    return JSONResponse(content={
+        "status":       "ok",
+        "audit_hash":   audit_hash,
+        "updated_kpis": updated_kpis,
+        "failed_kpis":  failed_kpis,
+        "submission_id": body.submission_id,
+        "processed_at": processed_at,
+    })
+
+
 # ── Coverage heatmap — ANALISTA only ─────────────────────────────────────────
 
 @app.get("/api/analyst/coverage")
-async def analyst_coverage(token: dict = Depends(_require_auth)):
+async def analyst_coverage(
+    token:        dict = Depends(_require_auth),
+    portfolio_id: str  = Query(default=""),
+):
     """
     GET /api/analyst/coverage — Portfolio KPI coverage matrix.
 
@@ -2890,7 +2992,7 @@ async def analyst_coverage(token: dict = Depends(_require_auth)):
         )
 
     try:
-        data = query_coverage()
+        data = query_coverage(portfolio_id=portfolio_id.strip() or None)
         return JSONResponse({"status": "ok", **data})
     except Exception as exc:
         print(f"❌ [API] Error en GET /api/analyst/coverage: {exc}")
@@ -3972,6 +4074,45 @@ async def notify_upload(
     return JSONResponse(content={"status": "ok"}, status_code=200)
 
 
+_BUCKET_TO_VERTICAL: dict[str, str] = {
+    "SAAS":  "SAAS",
+    "LEND":  "FINTECH",
+    "ECOM":  "MARKETPLACE",
+    "INSUR": "INSURTECH",
+    "OTH":   "GENERAL",
+}
+
+
+@app.get("/api/founder/config")
+@limiter.limit("30/minute")
+async def founder_config(
+    request: Request,
+    token: dict = Depends(_require_auth),
+) -> JSONResponse:
+    """
+    Auto-detects company_id and vertical for the authenticated founder.
+
+    Derives company context from the JWT email domain so the Founder Portal
+    never needs to ask the user to choose their company manually.
+
+    Returns
+    -------
+    JSON ``{ "company_id", "vertical", "is_known", "domain" }``
+    """
+    email: str = (token.get("email") or token.get("sub", "")).strip()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=422, detail="email no disponible en el token")
+    domain = email.split("@", 1)[1].lower()
+    comp_id, _, bucket_id, is_known = get_company_id(domain)
+    vertical = _BUCKET_TO_VERTICAL.get(bucket_id, "GENERAL")
+    return JSONResponse(content={
+        "company_id": comp_id,
+        "vertical":   vertical,
+        "is_known":   is_known,
+        "domain":     domain,
+    })
+
+
 class FinalizeRequest(BaseModel):
     """Body for POST /api/founder/finalize."""
     file_hashes:    list[str]
@@ -4147,14 +4288,15 @@ async def admin_invite(
     Flow
     ----
     1. Enforce ANALISTA role.
-    2. Validate email format and reject already-ACTIVE accounts.
-    3. Generate a signed JWT invite token (48 h, type="invite").
-    4. Register / refresh PENDING_INVITE record in users.json atomically.
-    5. Send invite email via email_service.send_invite_email().
-    6. Return { status, email, company_name, setup_url }.
-
-    The endpoint is idempotent for PENDING_INVITE accounts:
-    re-inviting regenerates the token and re-sends the email.
+    2. Validate email format.  Any existing record (ACTIVE or PENDING_INVITE)
+       is dropped and recreated — this allows re-inviting founders who lost
+       their setup link or whose access needs to be reset.
+    3. Auto-derive role: @cometa.vc / @cometa.fund / @cometavc.com → ANALISTA,
+       everything else → FOUNDER.
+    4. Generate a signed JWT invite token (48 h, type="invite").
+    5. Register PENDING_INVITE record in users.json atomically.
+    6. Send invite email via email_service.send_invite_email().
+    7. Return { status, email, company_name, setup_url }.
     """
     from src.services.email_service import send_invite_email  # lazy import
 
@@ -4171,19 +4313,19 @@ async def admin_invite(
     if not company_name:
         raise HTTPException(status_code=422, detail="El nombre de la empresa es obligatorio.")
 
-    # ── 2. Duplicate check ────────────────────────────────────────────────────
+    # ── 2. Duplicate check — ACTIVE users are reset to PENDING_INVITE (re-invite) ─
     users = _load_users()
     existing = next((u for u in users if u.get("email", "").lower() == email_lc), None)
-    if existing and existing.get("status", "ACTIVE") == "ACTIVE":
-        raise HTTPException(
-            status_code=409,
-            detail=f"{email_lc} ya está registrado y activo.",
-        )
-    # PENDING_INVITE → remove stale record so we recreate it fresh
-    if existing and existing.get("status") == "PENDING_INVITE":
+    # Both ACTIVE and PENDING_INVITE: drop stale record and recreate fresh
+    if existing:
         users = [u for u in users if u.get("email", "").lower() != email_lc]
 
-    # ── 3. Generate invite token ──────────────────────────────────────────────
+    # ── 3. Derive role from email domain ──────────────────────────────────────
+    invite_role = "ANALISTA" if any(
+        email_lc.endswith(d) for d in _INTERNAL_DOMAINS
+    ) else "FOUNDER"
+
+    # ── 4. Generate invite token ──────────────────────────────────────────────
     now = datetime.now(timezone.utc)
     invite_payload = {
         "type":         _INVITE_TOKEN_TYPE,
@@ -4196,7 +4338,7 @@ async def admin_invite(
     invite_token = jwt.encode(invite_payload, _JWT_SECRET, algorithm=_JWT_ALGORITHM)
     setup_url    = f"{_ADMIN_INVITE_FRONTEND_URL}/auth/setup-password?token={invite_token}"
 
-    # ── 4. Register PENDING_INVITE user ──────────────────────────────────────
+    # ── 5. Register PENDING_INVITE user ──────────────────────────────────────
     company_domain = email_lc.split("@")[1] if "@" in email_lc else ""
     company_id     = company_domain or company_name.lower().replace(" ", "_")
     placeholder_pw = f"LOCKED:{secrets.token_hex(24)}"
@@ -4205,7 +4347,7 @@ async def admin_invite(
         "email":      email_lc,
         "password":   placeholder_pw,
         "name":       body.name.strip() or company_name,
-        "role":       "FOUNDER",
+        "role":       invite_role,
         "company_id": company_id,
         "status":     "PENDING_INVITE",
     }
@@ -4213,7 +4355,7 @@ async def admin_invite(
     all_users = users + [new_user_dict]
     validated: list[UserSchema] = [UserSchema.model_validate(u) for u in all_users]
     _save_users(validated)
-    print(f"[admin/invite] Registered {email_lc!r} as PENDING_INVITE (company={company_name!r})")
+    print(f"[admin/invite] Registered {email_lc!r} as PENDING_INVITE role={invite_role} (company={company_name!r})")
 
     # ── 5. Send invite email ──────────────────────────────────────────────────
     sent, email_error = send_invite_email(

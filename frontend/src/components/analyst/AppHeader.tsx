@@ -108,9 +108,10 @@ export default function AppHeader({
             className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px]
                        transition-opacity hover:opacity-70 disabled:opacity-40"
             style={{
-              color:      "var(--cometa-fg-muted)",
-              border:     "1px solid var(--cometa-card-border)",
-              fontWeight: 400,
+              color:      "var(--cometa-accent-fg)",
+              border:     "1px solid var(--cometa-accent)",
+              fontWeight: 500,
+              background: "var(--cometa-accent)",
             }}
             title="Exportar KPIs a CSV"
           >
@@ -125,9 +126,10 @@ export default function AppHeader({
           onClick={() => router.push("/analyst/portfolio")}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] transition-opacity hover:opacity-70"
           style={{
-            color:      "var(--cometa-fg-muted)",
-            border:     "1px solid var(--cometa-card-border)",
-            fontWeight: 400,
+            color:      "var(--cometa-accent-fg)",
+            border:     "1px solid var(--cometa-accent)",
+            fontWeight: 500,
+            background: "var(--cometa-accent)",
           }}
           title="Comparativa de Portfolio"
         >
@@ -139,9 +141,10 @@ export default function AppHeader({
           onClick={handleLogout}
           className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] transition-opacity hover:opacity-70"
           style={{
-            color:   "var(--cometa-fg-muted)",
-            border:  "1px solid var(--cometa-card-border)",
-            fontWeight: 400,
+            color:      "var(--cometa-accent-fg)",
+            border:     "1px solid var(--cometa-accent)",
+            fontWeight: 500,
+            background: "var(--cometa-accent)",
           }}
         >
           <LogOut size={13} />
