@@ -96,7 +96,7 @@ steps:
       - --max-instances=10
       - --concurrency=10
       - --timeout=300
-      - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID},GCS_INPUT_BUCKET=${_GCS_INPUT_BUCKET},GCS_OUTPUT_BUCKET=${_GCS_OUTPUT_BUCKET},BIGQUERY_DATASET=${_BIGQUERY_DATASET},EMAIL_FROM=${_EMAIL_FROM},EMAIL_FROM_NAME=Cometa Vault
+      - --set-env-vars=GOOGLE_PROJECT_ID=${PROJECT_ID},GCS_INPUT_BUCKET=${_GCS_INPUT_BUCKET},GCS_OUTPUT_BUCKET=${_GCS_OUTPUT_BUCKET},BIGQUERY_DATASET=${_BIGQUERY_DATASET},EMAIL_FROM=${_EMAIL_FROM},EMAIL_FROM_NAME=Cometa Vault,SKIP_ORIGIN_CHECK=true
       - --set-secrets=GCP_SERVICE_ACCOUNT_JSON=cometa-gcp-credentials:latest,JWT_SECRET=cometa-jwt-secret:latest,RESEND_API_KEY=cometa-resend-key:latest
 
   # ── 6. Deploy Frontend → Cloud Run ───────────────────────────────────────────
