@@ -648,9 +648,9 @@ _assets_dir = os.path.join(BASE_DIR, "assets")
 if os.path.isdir(_assets_dir):
     app.mount("/assets", StaticFiles(directory=_assets_dir), name="assets")
 
-@app.get("/", include_in_schema=False)
+@app.get("/api/v2/health", include_in_schema=False)
 async def root():
-    return {"status": "online", "message": "Cometa API v1"}
+    return {"status": "online", "service": "cometa-vault-api", "version": "2.0"}
 
 # Configuración
 PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", "cometa-mvp")
