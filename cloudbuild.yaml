@@ -18,7 +18,7 @@
 substitutions:
   _REGION: us-central1
   _REPO: cometa-vault
-  _BACKEND_SERVICE: cometa-vault-test
+  _BACKEND_SERVICE: cometa-vault
   _FRONTEND_SERVICE: cometa-vault-frontend
   _SA_EMAIL: cometa-vault-sa@cometa-mvp.iam.gserviceaccount.com
   _NEXT_PUBLIC_API_URL: https://cometa-vault-92572839783.us-central1.run.app
