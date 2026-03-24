@@ -113,9 +113,9 @@ steps:
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
-      - --port=8080
+      - --port=3000
       - --cpu=1
-      - --memory=512Mi
+      - --memory=1Gi
       - --min-instances=0
       - --max-instances=5
       - --concurrency=80
