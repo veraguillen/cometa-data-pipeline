@@ -650,7 +650,7 @@ if os.path.isdir(_assets_dir):
 
 @app.get("/api/v2/health", include_in_schema=False)
 async def root():
-    return {"status": "online", "service": "cometa-vault-api", "version": "2.0"}
+    return {"status": "backend_online", "version": "2.0"}
 
 # Configuración
 PROJECT_ID = os.getenv("GOOGLE_PROJECT_ID", "cometa-mvp")
