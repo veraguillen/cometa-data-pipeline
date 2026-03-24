@@ -202,11 +202,9 @@ function HeatCell({ status, cell, company, period, onClick, onEnter, onLeave }: 
       aria-label={`${company} · ${periodShort(period)} · ${cfg.label}`}
     >
       {!isNoData && (
-        <cfg.Icon
-          size={14}
-          strokeWidth={1.5}
-          style={{ color: cfg.fg, opacity: 0.9 }}
-        />
+        <span style={{ color: cfg.fg, opacity: 0.9, display: "inline-flex" }}>
+          <cfg.Icon size={14} strokeWidth={1.5} />
+        </span>
       )}
     </motion.button>
   );
